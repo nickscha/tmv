@@ -279,13 +279,15 @@ TMV_API TMV_INLINE void tmv_squarify(
 }
 
 TMV_API TMV_INLINE void tmv_squarify_recursive(
-    tmv_treemap_item *items,
-    int items_count,
-    double x, double y,
-    double width, double height,
-    tmv_treemap_rect *rects,
-    int *rects_count,
-    double total_weight)
+    tmv_treemap_item *items, /* The descending by weight sorted treemap items*/
+    int items_count,         /* The number of items */
+    double x,                /* x */
+    double y,                /* y */
+    double width,            /* The width for the treemap */
+    double height,           /* The height for the treemap */
+    tmv_treemap_rect *rects, /* The output rects that have been computed */
+    int *rects_count,        /* The number of output rects computed */
+    double total_weight_of_all_items)
 {
   int i;
   int j;
@@ -296,7 +298,7 @@ TMV_API TMV_INLINE void tmv_squarify_recursive(
   }
 
   /* Lay out the current level */
-  tmv_squarify(items, items_count, x, y, width, height, rects, rects_count, total_weight);
+  tmv_squarify(items, items_count, x, y, width, height, rects, rects_count, total_weight_of_all_items);
 
   /* For each item, recurse into children if any */
   for (i = *rects_count - items_count, j = 0; j < items_count; ++j, ++i)
