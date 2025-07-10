@@ -61,6 +61,8 @@ void tmv_test_simple_layout(void)
 
 void tmv_test_simple_recursive_layout(void)
 {
+  tmv_treemap_item *found;
+
   /* Define a output buffer for output rects */
   tmv_treemap_rect rects[TMV_MAX_RECTS];
   int rect_count = 0;
@@ -123,6 +125,11 @@ void tmv_test_simple_recursive_layout(void)
   assert(rects[5].id == 6 && rects[5].x == 0 && rects[5].y == 25 && rects[5].width == 25 && rects[5].height == 25);
   assert(rects[6].id == 7 && rects[6].x == 25 && rects[6].y == 0 && rects[6].width == 25 && rects[6].height == 25);
   assert(rects[7].id == 8 && rects[7].x == 25 && rects[7].y == 25 && rects[7].width == 25 && rects[7].height == 25);
+
+  found = tmv_find_item_by_id(items, TMV_ARRAY_SIZE(items), 3);
+  assert(found->id == 3);
+  assert(found->weight == 10.0);
+  
 }
 
 int main(void)

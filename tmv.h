@@ -53,6 +53,29 @@ typedef struct tmv_treemap_rect
 
 } tmv_treemap_rect;
 
+TMV_API TMV_INLINE tmv_treemap_item *tmv_find_item_by_id(tmv_treemap_item *items, int count, int id)
+{
+  int i;
+  for (i = 0; i < count; ++i)
+  {
+    if (items[i].id == id)
+    {
+      return &items[i];
+    }
+
+    if (items[i].children && items[i].children_count > 0)
+    {
+      tmv_treemap_item *found = tmv_find_item_by_id(items[i].children, items[i].children_count, id);
+      if (found != 0)
+      {
+        return found;
+      }
+    }
+  }
+
+  return 0;
+}
+
 TMV_API TMV_INLINE double tmv_total_weight(tmv_treemap_item *items, int count)
 {
   double sum = 0.0;
