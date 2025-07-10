@@ -175,7 +175,9 @@ TMV_API TMV_INLINE void tmv_layout_row(
   }
 }
 
-#define MAX_RECTS 512
+#ifndef TMV_MAX_RECTS
+#define TMV_MAX_RECTS 1024
+#endif
 
 TMV_API TMV_INLINE void tmv_squarify(
     tmv_treemap_item *items, /* The descending by weight sorted treemap items*/
@@ -190,8 +192,8 @@ TMV_API TMV_INLINE void tmv_squarify(
 {
 
   int i, row_count = 0;
-  double weights[MAX_RECTS];
-  tmv_treemap_item row_items[MAX_RECTS];
+  double weights[TMV_MAX_RECTS];
+  tmv_treemap_item row_items[TMV_MAX_RECTS];
 
   int horizontal = (width >= height);
   double side_length = horizontal ? height : width;
@@ -222,7 +224,7 @@ TMV_API TMV_INLINE void tmv_squarify(
     /* Scale weights to area */
     {
       int j;
-      double scaled_weights[MAX_RECTS];
+      double scaled_weights[TMV_MAX_RECTS];
       double worst_with;
 
       for (j = 0; j < row_count; ++j)

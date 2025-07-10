@@ -14,8 +14,6 @@ LICENSE
 
 #include "test.h" /* Simple Testing framework */
 
-#define TMV_MAX_RECTS 64
-
 void tmv_test_print_rects(tmv_treemap_rect *rects, int rect_count)
 {
   int i;
@@ -129,7 +127,6 @@ void tmv_test_simple_recursive_layout(void)
   found = tmv_find_item_by_id(items, TMV_ARRAY_SIZE(items), 3);
   assert(found->id == 3);
   assert(found->weight == 10.0);
-  
 }
 
 int main(void)
