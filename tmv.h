@@ -199,6 +199,10 @@ TMV_API TMV_INLINE void tmv_squarify_current(
   double side_length = horizontal ? height : width;
   double area = width * height;
 
+  int j;
+  double scaled_weights[TMV_MAX_RECTS];
+  double worst_with;
+
   if (items_count == 0)
   {
     return;
@@ -222,54 +226,48 @@ TMV_API TMV_INLINE void tmv_squarify_current(
     row_count++;
 
     /* Scale weights to area */
+    for (j = 0; j < row_count; ++j)
     {
-      int j;
-      double scaled_weights[TMV_MAX_RECTS];
-      double worst_with;
+      scaled_weights[j] = (weights[j] / total_weight_of_all_items) * area;
+    }
 
-      for (j = 0; j < row_count; ++j)
+    worst_with = tmv_worst_aspect(scaled_weights, row_count, side_length);
+
+    if (i + 1 < items_count)
+    {
+      int next_count;
+      double worst_with_next;
+
+      weights[row_count] = items[i + 1].weight;
+      next_count = row_count + 1;
+
+      for (j = 0; j < next_count; ++j)
       {
         scaled_weights[j] = (weights[j] / total_weight_of_all_items) * area;
       }
 
-      worst_with = tmv_worst_aspect(scaled_weights, row_count, side_length);
+      worst_with_next = tmv_worst_aspect(scaled_weights, next_count, side_length);
 
-      if (i + 1 < items_count)
+      if (worst_with_next > worst_with)
       {
-        int next_count;
-        double worst_with_next;
+        double total_weight = tmv_total_weight(row_items, row_count);
+        double row_side_length = (total_weight / total_weight_of_all_items) * (area / side_length);
 
-        weights[row_count] = items[i + 1].weight;
-        next_count = row_count + 1;
-
-        for (j = 0; j < next_count; ++j)
+        if (horizontal)
         {
-          scaled_weights[j] = (weights[j] / total_weight_of_all_items) * area;
+          tmv_layout_row(row_items, row_count, x, y, row_side_length, height, rects, rects_count);
+          tmv_squarify_current(items + i + 1, items_count - i - 1,
+                               x + row_side_length, y, width - row_side_length, height,
+                               rects, rects_count, total_weight_of_all_items);
         }
-
-        worst_with_next = tmv_worst_aspect(scaled_weights, next_count, side_length);
-
-        if (worst_with_next > worst_with)
+        else
         {
-          double total_weight = tmv_total_weight(row_items, row_count);
-          double row_side_length = (total_weight / total_weight_of_all_items) * (area / side_length);
-
-          if (horizontal)
-          {
-            tmv_layout_row(row_items, row_count, x, y, row_side_length, height, rects, rects_count);
-            tmv_squarify_current(items + i + 1, items_count - i - 1,
-                                 x + row_side_length, y, width - row_side_length, height,
-                                 rects, rects_count, total_weight_of_all_items);
-          }
-          else
-          {
-            tmv_layout_row(row_items, row_count, x, y, width, row_side_length, rects, rects_count);
-            tmv_squarify_current(items + i + 1, items_count - i - 1,
-                                 x, y + row_side_length, width, height - row_side_length,
-                                 rects, rects_count, total_weight_of_all_items);
-          }
-          return;
+          tmv_layout_row(row_items, row_count, x, y, width, row_side_length, rects, rects_count);
+          tmv_squarify_current(items + i + 1, items_count - i - 1,
+                               x, y + row_side_length, width, height - row_side_length,
+                               rects, rects_count, total_weight_of_all_items);
         }
+        return;
       }
     }
   }
