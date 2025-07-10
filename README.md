@@ -15,7 +15,57 @@ Download or clone tmv.h and include it in your project.
 ```C
 #include "tmv.h"
 
+#define TMV_MAX_RECTS 64
+
 int main() {
+
+    /* Define a output buffer for output rects */
+    tmv_treemap_rect rects[TMV_MAX_RECTS];
+    int rect_count = 0;
+
+    /*
+    Expected squarified treemap output if width = 100 and height = 100:
+
+    id: 1, x:  0, y:  0, width: 50, height: 50
+    id: 2, x:  0, y: 50, width: 50, height: 50
+    id: 3, x: 50, y:  0, width: 50, height: 50
+    id: 4, x: 50, y: 50, width: 50, height: 50
+    id: 5, x:  0, y:  0, width: 25, height: 25  <- child1
+    id: 6, x:  0, y: 25, width: 25, height: 25  <- child2
+    id: 7, x: 25, y:  0, width: 25, height: 25  <- child3
+    id: 8, x: 25, y: 25, width: 25, height: 25  <- child4
+    */
+    tmv_treemap_item child1 = {5, 2.5, 0, 0};
+    tmv_treemap_item child2 = {6, 2.5, 0, 0};
+    tmv_treemap_item child3 = {7, 2.5, 0, 0};
+    tmv_treemap_item child4 = {8, 2.5, 0, 0};
+    tmv_treemap_item children[4];
+
+    tmv_treemap_item items[] = {
+        {1, 10.0, 0, 4},
+        {2, 10.0, 0, 0},
+        {3, 10.0, 0, 0},
+        {4, 10.0, 0, 0}};
+
+    children[0] = child1;
+    children[1] = child2;
+    children[2] = child3;
+    children[3] = child4;
+
+    items[0].children = children;
+
+    /* Build squarified recursive treemap view */
+    tmv_squarify_recursive(
+        items,                                         /* List of treemap items */
+        TMV_ARRAY_SIZE(items),                         /* Size of top level items */
+        0, 0,                                          /* Treemap view area start */
+        100, 100,                                      /* Treemap view area width and height */
+        rects,                                         /* The output buffer for rectangular shapes computed */
+        &rect_count,                                   /* The number of rectangular shapes computed */
+        tmv_total_weight(items, TMV_ARRAY_SIZE(items)) /* The total weight of the top level items */
+    );
+
+    /* Afterwards you can iterate through the rects */
 
     return 0;
 }
