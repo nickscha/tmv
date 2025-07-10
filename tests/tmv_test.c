@@ -46,7 +46,7 @@ void tmv_test_simple_layout(void)
 
   assert(TMV_ARRAY_SIZE(items) == 4);
 
-  tmv_squarify(items, TMV_ARRAY_SIZE(items), 0, 0, 100, 100, rects, &rect_count, tmv_total_weight(items, TMV_ARRAY_SIZE(items)));
+  tmv_squarify(items, TMV_ARRAY_SIZE(items), 0, 0, 100, 100, rects, &rect_count);
   assert(rect_count == 4);
 
   tmv_test_print_rects(rects, rect_count);
@@ -97,14 +97,13 @@ void tmv_test_simple_recursive_layout(void)
   items[0].children = children;
 
   /* Build squarified recursive treemap view */
-  tmv_squarify_recursive(
-      items,                                         /* List of treemap items */
-      TMV_ARRAY_SIZE(items),                         /* Size of top level items */
-      0, 0,                                          /* Treemap view area start */
-      100, 100,                                      /* Treemap view area width and height */
-      rects,                                         /* The output buffer for rectangular shapes computed */
-      &rect_count,                                   /* The number of rectangular shapes computed */
-      tmv_total_weight(items, TMV_ARRAY_SIZE(items)) /* The total weight of the top level items */
+  tmv_squarify(
+      items,                 /* List of treemap items */
+      TMV_ARRAY_SIZE(items), /* Size of top level items */
+      0, 0,                  /* Treemap view area start */
+      100, 100,              /* Treemap view area width and height */
+      rects,                 /* The output buffer for rectangular shapes computed */
+      &rect_count            /* The number of rectangular shapes computed */
   );
 
   /* Afterwards you can iterate through the rects */

@@ -53,14 +53,13 @@ int main() {
     items[0].children = children;
 
     /* Build squarified recursive treemap view */
-    tmv_squarify_recursive(
+    tmv_squarify(
         items,                                         /* List of treemap items */
         TMV_ARRAY_SIZE(items),                         /* Size of top level items */
         0, 0,                                          /* Treemap view area start */
         100, 100,                                      /* Treemap view area width and height */
         rects,                                         /* The output buffer for rectangular shapes computed */
-        &rect_count,                                   /* The number of rectangular shapes computed */
-        tmv_total_weight(items, TMV_ARRAY_SIZE(items)) /* The total weight of the top level items */
+        &rect_count                                   /* The number of rectangular shapes computed */
     );
 
     /* Afterwards you can iterate through the rects */
