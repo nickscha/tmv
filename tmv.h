@@ -30,6 +30,8 @@ LICENSE
 #define TMV_API static
 #endif
 
+#define TMV_ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+
 typedef struct tmv_treemap_item
 {
   int id;
@@ -51,7 +53,7 @@ typedef struct tmv_treemap_rect
 
 } tmv_treemap_rect;
 
-static double tmv_total_weight(tmv_treemap_item *items, int count)
+TMV_API TMV_INLINE double tmv_total_weight(tmv_treemap_item *items, int count)
 {
   double sum = 0.0;
   int i;
@@ -62,7 +64,7 @@ static double tmv_total_weight(tmv_treemap_item *items, int count)
   return sum;
 }
 
-static double tmv_worst_aspect(double *weights, int count, double side_length)
+TMV_API TMV_INLINE double tmv_worst_aspect(double *weights, int count, double side_length)
 {
   int i;
 
@@ -101,7 +103,7 @@ static double tmv_worst_aspect(double *weights, int count, double side_length)
   return (r1 > r2) ? r1 : r2;
 }
 
-static void tmv_layout_row(
+TMV_API TMV_INLINE void tmv_layout_row(
     tmv_treemap_item *row_items,
     int row_count,
     double x,
@@ -152,7 +154,7 @@ static void tmv_layout_row(
 
 #define MAX_RECTS 512
 
-static void tmv_squarify(
+TMV_API TMV_INLINE void tmv_squarify(
     tmv_treemap_item *items, /* The descending by weight sorted treemap items*/
     int items_count,         /* The number of items */
     double x,                /* x */
@@ -251,7 +253,7 @@ static void tmv_squarify(
   tmv_layout_row(row_items, row_count, x, y, width, height, rects, rects_count);
 }
 
-void tmv_squarify_recursive(
+TMV_API TMV_INLINE void tmv_squarify_recursive(
     tmv_treemap_item *items,
     int items_count,
     double x, double y,

@@ -15,7 +15,6 @@ LICENSE
 #include "test.h" /* Simple Testing framework */
 
 #define TMV_MAX_RECTS 64
-#define TMV_ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 void tmv_test_print_rects(tmv_treemap_rect *rects, int rect_count)
 {
@@ -62,7 +61,8 @@ void tmv_test_simple_layout(void)
 
 void tmv_test_simple_recursive_layout(void)
 {
-  tmv_treemap_rect rects[MAX_RECTS];
+  /* Define a output buffer for output rects */
+  tmv_treemap_rect rects[TMV_MAX_RECTS];
   int rect_count = 0;
 
   /*
@@ -96,7 +96,19 @@ void tmv_test_simple_recursive_layout(void)
 
   items[0].children = children;
 
-  tmv_squarify_recursive(items, TMV_ARRAY_SIZE(items), 0, 0, 100, 100, rects, &rect_count, tmv_total_weight(items, TMV_ARRAY_SIZE(items)));
+  /* Build squarified recursive treemap view */
+  tmv_squarify_recursive(
+      items,                                         /* List of treemap items */
+      TMV_ARRAY_SIZE(items),                         /* Size of top level items */
+      0, 0,                                          /* Treemap view area start */
+      100, 100,                                      /* Treemap view area width and height */
+      rects,                                         /* The output buffer for rectangular shapes computed */
+      &rect_count,                                   /* The number of rectangular shapes computed */
+      tmv_total_weight(items, TMV_ARRAY_SIZE(items)) /* The total weight of the top level items */
+  );
+
+  /* Afterwards you can iterate through the rects */
+
   assert(rect_count == 8);
 
   tmv_test_print_rects(rects, rect_count);
