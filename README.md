@@ -19,10 +19,11 @@ int main() {
 
     /* Define a output buffer for output rects */
     tmv_treemap_rect rects[TMV_MAX_RECTS];
-    int rect_count = 0;
+    int rects_count = 0;
 
     /*
-    Expected squarified treemap output if width = 100 and height = 100:
+    Expected squarified treemap output 
+    if width = 100 and height = 100:
 
     id: 1, x:  0, y:  0, width: 50, height: 50
     id: 2, x:  0, y: 50, width: 50, height: 50
@@ -54,12 +55,12 @@ int main() {
 
     /* Build squarified recursive treemap view */
     tmv_squarify(
-        items,                 /* List of treemap items                             */
-        TMV_ARRAY_SIZE(items), /* Size of top level items                           */
-        0, 0,                  /* Treemap view area start                           */
-        100, 100,              /* Treemap view area width and height                */
-        rects,                 /* The output buffer for rectangular shapes computed */
-        &rect_count            /* The number of rectangular shapes computed.        */
+        items,                 /* List of treemap items                  */
+        TMV_ARRAY_SIZE(items), /* Size of top level items                */
+        0, 0,                  /* Treemap view area start                */
+        100, 100,              /* Treemap view area width and height     */
+        rects,                 /* Output buffer for rect shapes computed */
+        &rects_count           /* Number of rect shapes computed         */
     );
 
     /* Afterwards you can iterate through the rects */
