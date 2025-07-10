@@ -15,8 +15,6 @@ Download or clone tmv.h and include it in your project.
 ```C
 #include "tmv.h"
 
-#define TMV_MAX_RECTS 64
-
 int main() {
 
     /* Define a output buffer for output rects */
