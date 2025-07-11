@@ -87,45 +87,6 @@ TMV_API TMV_INLINE double tmv_total_weight(tmv_treemap_item *items, int count)
   return sum;
 }
 
-TMV_API TMV_INLINE double tmv_worst_aspect(double *weights, int count, double side_length)
-{
-  int i;
-
-  double total = 0.0;
-  double max_w = 0.0;
-  double min_w = 1e9;
-
-  double side_sq;
-  double r1;
-  double r2;
-
-  for (i = 0; i < count; ++i)
-  {
-    double w = weights[i];
-
-    total += w;
-    if (w > max_w)
-    {
-      max_w = w;
-    }
-    if (w < min_w)
-    {
-      min_w = w;
-    }
-  }
-
-  if (min_w <= 0.0 || side_length <= 0.0)
-  {
-    return 1e9;
-  }
-
-  side_sq = side_length * side_length;
-  r1 = (side_sq * max_w) / (total * total);
-  r2 = (total * total) / (side_sq * min_w);
-
-  return (r1 > r2) ? r1 : r2;
-}
-
 TMV_API TMV_INLINE void tmv_layout_row(
     tmv_treemap_item *row_items,
     int row_count,
@@ -175,10 +136,6 @@ TMV_API TMV_INLINE void tmv_layout_row(
   }
 }
 
-#ifndef TMV_MAX_RECTS
-#define TMV_MAX_RECTS 1024
-#endif
-
 TMV_API TMV_INLINE void tmv_squarify_current(
     tmv_treemap_item *items, /* The descending by weight sorted treemap items*/
     int items_count,         /* The number of items */
@@ -187,93 +144,91 @@ TMV_API TMV_INLINE void tmv_squarify_current(
     double width,            /* The width for the treemap */
     double height,           /* The height for the treemap */
     tmv_treemap_rect *rects, /* The output rects that have been computed */
-    int *rects_count,        /* The number of output rects computed */
-    double total_weight_of_all_items)
+    int *rects_count         /* The number of output rects computed */
+)
 {
+  int start = 0;
 
-  int i, row_count = 0;
-  double weights[TMV_MAX_RECTS];
-  tmv_treemap_item row_items[TMV_MAX_RECTS];
-
-  int horizontal = (width >= height);
-  double side_length = horizontal ? height : width;
+  double total_weight = tmv_total_weight(items, items_count);
   double area = width * height;
+  double scale = (total_weight > 0.0) ? (area / total_weight) : 0.0;
 
-  int j;
-  double scaled_weights[TMV_MAX_RECTS];
-  double worst_with;
-
-  if (items_count == 0)
+  while (start < items_count)
   {
-    return;
-  }
+    int end = start;
+    double row_weight = 0.0;
+    double worst = 1e9;
+    int i;
 
-  if (items_count == 1)
-  {
-    rects[*rects_count].id = items[0].id;
-    rects[*rects_count].x = x;
-    rects[*rects_count].y = y;
-    rects[*rects_count].width = width;
-    rects[*rects_count].height = height;
-    (*rects_count)++;
-    return;
-  }
+    double side = (width >= height) ? height : width;
 
-  for (i = 0; i < items_count; ++i)
-  {
-    row_items[row_count] = items[i];
-    weights[row_count] = items[i].weight;
-    row_count++;
+    double row_length;
+    int row_count;
 
-    /* Scale weights to area */
-    for (j = 0; j < row_count; ++j)
+    /* Try to add items[start..end] */
+    while (end < items_count)
     {
-      scaled_weights[j] = (weights[j] / total_weight_of_all_items) * area;
-    }
+      double max_w = -1e9;
+      double min_w = 1e9;
+      double w_scaled;
 
-    worst_with = tmv_worst_aspect(scaled_weights, row_count, side_length);
+      double row_area;
+      double r1;
+      double r2;
+      double new_worst;
 
-    if (i + 1 < items_count)
-    {
-      int next_count;
-      double worst_with_next;
+      row_weight += items[end].weight;
 
-      weights[row_count] = items[i + 1].weight;
-      next_count = row_count + 1;
-
-      for (j = 0; j < next_count; ++j)
+      /* Compute scaled weights and track min/max */
+      for (i = start; i <= end; ++i)
       {
-        scaled_weights[j] = (weights[j] / total_weight_of_all_items) * area;
+        w_scaled = items[i].weight * scale;
+        if (w_scaled > max_w)
+        {
+          max_w = w_scaled;
+        }
+        if (w_scaled < min_w)
+        {
+          min_w = w_scaled;
+        }
       }
 
-      worst_with_next = tmv_worst_aspect(scaled_weights, next_count, side_length);
+      /* Calculate the new worst aspect ratio s*/
+      row_area = row_weight * scale;
+      r1 = (side * side * max_w) / (row_area * row_area);
+      r2 = (row_area * row_area) / (side * side * min_w);
+      new_worst = (r1 > r2) ? r1 : r2;
 
-      if (worst_with_next > worst_with)
+      /* Stop if aspect ratio would worsen */
+      if (new_worst > worst)
       {
-        double total_weight = tmv_total_weight(row_items, row_count);
-        double row_side_length = (total_weight / total_weight_of_all_items) * (area / side_length);
-
-        if (horizontal)
-        {
-          tmv_layout_row(row_items, row_count, x, y, row_side_length, height, rects, rects_count);
-          tmv_squarify_current(items + i + 1, items_count - i - 1,
-                               x + row_side_length, y, width - row_side_length, height,
-                               rects, rects_count, total_weight_of_all_items);
-        }
-        else
-        {
-          tmv_layout_row(row_items, row_count, x, y, width, row_side_length, rects, rects_count);
-          tmv_squarify_current(items + i + 1, items_count - i - 1,
-                               x, y + row_side_length, width, height - row_side_length,
-                               rects, rects_count, total_weight_of_all_items);
-        }
-        return;
+        row_weight -= items[end].weight;
+        break;
       }
-    }
-  }
 
-  /* All items fit in one row */
-  tmv_layout_row(row_items, row_count, x, y, width, height, rects, rects_count);
+      worst = new_worst;
+      ++end;
+    }
+
+    /* Compute row size in layout direction */
+    row_length = (row_weight / total_weight) * (area / side);
+    row_count = end - start;
+
+    if (width >= height)
+    {
+      tmv_layout_row(&items[start], row_count, x, y, row_length, height, rects, rects_count);
+      x += row_length;
+      width -= row_length;
+    }
+    else
+    {
+      tmv_layout_row(&items[start], row_count, x, y, width, row_length, rects, rects_count);
+      y += row_length;
+      height -= row_length;
+    }
+
+    start = end;
+  }
 }
 
 TMV_API TMV_INLINE void tmv_squarify(
@@ -289,7 +244,6 @@ TMV_API TMV_INLINE void tmv_squarify(
 {
   int i;
   int j;
-  double total_weight_of_all_items = tmv_total_weight(items, items_count);
 
   if (items_count == 0)
   {
@@ -297,8 +251,7 @@ TMV_API TMV_INLINE void tmv_squarify(
   }
 
   /* Lay out the current level */
-
-  tmv_squarify_current(items, items_count, x, y, width, height, rects, rects_count, total_weight_of_all_items);
+  tmv_squarify_current(items, items_count, x, y, width, height, rects, rects_count);
 
   /* For each item, recurse into children if any */
   for (i = *rects_count - items_count, j = 0; j < items_count; ++j, ++i)

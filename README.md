@@ -17,6 +17,8 @@ Download or clone tmv.h and include it in your project.
 
 int main() {
 
+    #define TMV_MAX_RECTS 1024
+
     /* Define a output buffer for output rects */
     tmv_treemap_rect rects[TMV_MAX_RECTS];
     int rects_count = 0;

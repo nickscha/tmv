@@ -14,6 +14,8 @@ LICENSE
 
 #include "test.h" /* Simple Testing framework */
 
+#define TMV_MAX_RECTS 1024
+
 void tmv_test_print_rects(tmv_treemap_rect *rects, int rect_count)
 {
   int i;
