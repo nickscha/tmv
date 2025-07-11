@@ -70,7 +70,8 @@ static void tmv_write_to_svg(char *filename, double area_width, double area_heig
         rect.y,
         rect.width,
         rect.height,
-        color);
+        color,
+        0, 0);
   }
 
   vgg_svg_end(&w);
