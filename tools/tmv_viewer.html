@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>TMV Viewer</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+</head>
+
+<body>
+
+    <svg id="tmvsvg" xmlns="http://www.w3.org/2000/svg" width="400" height="400">
+        <rect id="1" x="0" y="0" width="200" height="400" fill="#FF5500" data-weight="20.0" />
+        <rect id="2" x="200" y="0" width="200" height="200" fill="#C39F7F" data-weight="10.0" />
+        <rect id="3" x="200" y="200" width="100" height="200" fill="#A6C4BF" data-weight="5.0" />
+        <rect id="4" x="300" y="200" width="100" height="200" fill="#A6C4BF" data-weight="5.0" />
+        <rect id="5" x="200" y="0" width="100" height="100" fill="#97D6DF" />
+        <rect id="6" x="200" y="100" width="100" height="100" fill="#97D6DF" />
+        <rect id="7" x="300" y="0" width="100" height="100" fill="#97D6DF" />
+        <rect id="8" x="300" y="100" width="100" height="100" fill="#97D6DF" />
+        <rect id="9" x="300" y="200" width="100" height="100" fill="#A6C4BF" />
+        <rect id="10" x="300" y="300" width="50" height="100" fill="#97D6DF" />
+        <rect id="11" x="350" y="300" width="50" height="50" fill="#90E0EF" />
+        <rect id="12" x="350" y="350" width="50" height="50" fill="#90E0EF" />
+    </svg>
+
+    <!-- Display selected rect -->
+    <div id="info-box"></div>
+
+    <style>
+        rect {
+            stroke-width: 0.05;
+            stroke: black;
+        }
+
+        #info-box table {
+            font-size: 16px;
+            border-collapse: collapse;
+            width: 400px;
+            table-layout: fixed;
+        }
+
+        #info-box th,
+        #info-box td {
+            padding: 4px 8px;
+            width: 50%;
+            /* equal width columns */
+            box-sizing: border-box;
+        }
+
+        #info-box th {
+            border-bottom: 1px solid #aaa;
+        }
+    </style>
+
+
+    <script>
+        const svg = document.getElementById("tmvsvg");
+        const infoBox = document.getElementById("info-box");
+        const rects = svg.querySelectorAll("rect");
+
+        let selectedRect = null;
+
+        function darkenColor(hex, percent) {
+            // Convert hex to RGB
+            let r = parseInt(hex.substr(1, 2), 16);
+            let g = parseInt(hex.substr(3, 2), 16);
+            let b = parseInt(hex.substr(5, 2), 16);
+
+            // Reduce brightness
+            r = Math.floor(r * (1 - percent));
+            g = Math.floor(g * (1 - percent));
+            b = Math.floor(b * (1 - percent));
+
+            // Clamp and convert back to hex
+            r = Math.max(0, r).toString(16).padStart(2, "0");
+            g = Math.max(0, g).toString(16).padStart(2, "0");
+            b = Math.max(0, b).toString(16).padStart(2, "0");
+
+            return `#${r}${g}${b}`;
+        }
+
+        function highlightRect(rect) {
+            const originalFill = rect.getAttribute("fill");
+            if (!rect.hasAttribute("data-original-fill")) {
+                rect.setAttribute("data-original-fill", originalFill);
+            }
+            const darkerFill = darkenColor(originalFill, 0.2); // 20% darker
+            rect.setAttribute("fill", darkerFill);
+        }
+
+        function unhighlightRect(rect) {
+            if (rect.hasAttribute("data-original-fill")) {
+                rect.setAttribute("fill", rect.getAttribute("data-original-fill"));
+                rect.removeAttribute("data-original-fill");
+            }
+        }
+
+        function showData(rect) {
+            const dataEntries = Object.entries(rect.dataset);
+            let html = `<table>`;
+            html += `<tr><th style="text-align:left;">Key</th><th style="text-align:left;">Value</th></tr>`;
+            html += `<tr><td><strong>id</strong></td><td>${rect.id}</td></tr>`;
+            dataEntries.forEach(([key, value]) => {
+                if (key !== "originalFill") {
+                    html += `<tr><td><strong>${key}</strong></td><td>${value}</td></tr>`;
+                }
+            });
+            html += `</table>`;
+            infoBox.innerHTML = html;
+        }
+
+        function resetAllRects() {
+            rects.forEach(r => unhighlightRect(r));
+        }
+
+        rects.forEach(rect => {
+            rect.addEventListener("mouseover", () => {
+                if (selectedRect === null) {
+                    highlightRect(rect);
+                    showData(rect);
+                }
+            });
+
+            rect.addEventListener("mouseout", () => {
+                if (selectedRect === null) {
+                    unhighlightRect(rect);
+                    infoBox.textContent = "";
+                }
+            });
+
+            rect.addEventListener("click", () => {
+                // If this rect is already selected, unselect it
+                if (selectedRect === rect) {
+                    unhighlightRect(rect);
+                    selectedRect = null;
+                    infoBox.textContent = "";
+                } else {
+                    // Deselect previous if any
+                    if (selectedRect !== null) {
+                        unhighlightRect(selectedRect);
+                    }
+                    selectedRect = rect;
+                    highlightRect(rect);
+                    showData(rect);
+                }
+            });
+        });
+    </script>
+
+</body>
+
+</html>
