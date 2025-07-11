@@ -32,6 +32,37 @@ void tmv_test_print_rects(tmv_treemap_rect *rects, int rect_count)
   }
 }
 
+void tmv_test_simple_sort(void)
+{
+  tmv_treemap_rect rects[TMV_MAX_RECTS];
+  int rect_count = 0;
+
+  tmv_treemap_item items[] = {
+      {1, 10.0, 0, 0, 0},
+      {2, 3.0, 0, 0, 0},
+      {3, 20.0, 0, 0, 0},
+      {4, 1.0, 0, 0, 0}};
+
+  assert(TMV_ARRAY_SIZE(items) == 4);
+
+  tmv_squarify(items, TMV_ARRAY_SIZE(items), 0, 0, 100, 100, rects, &rect_count);
+  assert(rect_count == 4);
+
+  /* Items are sorted by weight afterwards */
+  assert(items[0].id == 3);
+  assert(items[1].id == 1);
+  assert(items[2].id == 2);
+  assert(items[3].id == 4);
+
+  tmv_test_print_rects(rects, rect_count);
+
+  /* Rects are sorted by weight afterwards */
+  assert(rects[0].id == 3);
+  assert(rects[1].id == 1);
+  assert(rects[2].id == 2);
+  assert(rects[3].id == 4);
+}
+
 void tmv_test_simple_layout(void)
 {
   tmv_treemap_rect rects[TMV_MAX_RECTS];
@@ -176,6 +207,7 @@ void tmv_test_simple_more_items(void)
 
 int main(void)
 {
+  tmv_test_simple_sort();
   tmv_test_simple_layout();
   tmv_test_simple_recursive_layout();
   tmv_test_simple_more_items();

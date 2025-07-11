@@ -96,6 +96,24 @@ TMV_API TMV_INLINE tmv_treemap_item *tmv_find_item_by_id(tmv_treemap_item *items
   return 0;
 }
 
+TMV_API TMV_INLINE void tmv_insertion_sort_stable_desc(tmv_treemap_item *items, int count)
+{
+  int i, j;
+  for (i = 1; i < count; ++i)
+  {
+    tmv_treemap_item key = items[i];
+    j = i - 1;
+
+    /* Move elements with weight < key.weight one position forward */
+    while (j >= 0 && items[j].weight < key.weight)
+    {
+      items[j + 1] = items[j];
+      j--;
+    }
+    items[j + 1] = key;
+  }
+}
+
 TMV_API TMV_INLINE double tmv_total_weight(tmv_treemap_item *items, int count)
 {
   double sum = 0.0;
@@ -168,10 +186,11 @@ TMV_API TMV_INLINE void tmv_squarify_current(
 )
 {
   int start = 0;
-
   double total_weight = tmv_total_weight(items, items_count);
   double area = width * height;
   double scale = (total_weight > 0.0) ? (area / total_weight) : 0.0;
+
+  tmv_insertion_sort_stable_desc(items, items_count);
 
   while (start < items_count)
   {
