@@ -4,6 +4,7 @@ A C89 standard compliant, single header, nostdlib (no C Standard Library) squari
 <p align="left">
   <img src="assets/tmv_linear.png" alt="Linear Treemap" width="200" height="200" />
   <img src="assets/tmv_weighted.png" alt="Weighted/Nested Treemap" width="200" height="200" />
+  <img src="assets/tmv_files.png" alt="File Explorer Treemap" width="600" />
 </p>
 
 It uses the paper "Squarified Treemaps" algorythm by Mark Bruls, Kees Huizing, and Jarke J. van Wijk.
