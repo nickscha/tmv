@@ -4,5 +4,5 @@ set DEF_FLAGS_COMPILER=-std=c89 -pedantic -Wall -Wextra -Werror -Wconversion -Wv
 set DEF_FLAGS_LINKER=
 set SOURCE_NAME=tmv_tools
 
-cc -g3 %DEF_FLAGS_COMPILER% -o %SOURCE_NAME%.exe %SOURCE_NAME%.c %DEF_FLAGS_LINKER%
+cc -s -O2 %DEF_FLAGS_COMPILER% -o %SOURCE_NAME%.exe %SOURCE_NAME%.c %DEF_FLAGS_LINKER%
 %SOURCE_NAME%.exe

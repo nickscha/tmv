@@ -123,23 +123,23 @@ static void tmv_to_svg_nested(void)
   tmv_treemap_rect rects[TMV_MAX_RECTS];
   int rect_count = 0;
 
-  tmv_treemap_item child1 = {5, 2.5, 0, 0};
-  tmv_treemap_item child2 = {6, 2.5, 0, 0};
-  tmv_treemap_item child3 = {7, 2.5, 0, 0};
-  tmv_treemap_item child4 = {8, 2.5, 0, 0};
+  tmv_treemap_item child1 = {5, 2.5, 0, 0, 0};
+  tmv_treemap_item child2 = {6, 2.5, 0, 0, 0};
+  tmv_treemap_item child3 = {7, 2.5, 0, 0, 0};
+  tmv_treemap_item child4 = {8, 2.5, 0, 0, 0};
   tmv_treemap_item children_linear[4];
 
-  tmv_treemap_item child5 = {9, 5.0, 0, 0};
-  tmv_treemap_item child6 = {10, 2.5, 0, 0};
-  tmv_treemap_item child7 = {11, 1.25, 0, 0};
-  tmv_treemap_item child8 = {12, 1.25, 0, 0};
+  tmv_treemap_item child5 = {9, 5.0, 0, 0, 0};
+  tmv_treemap_item child6 = {10, 2.5, 0, 0, 0};
+  tmv_treemap_item child7 = {11, 1.25, 0, 0, 0};
+  tmv_treemap_item child8 = {12, 1.25, 0, 0, 0};
   tmv_treemap_item children_weighted[4];
 
   tmv_treemap_item items[] = {
-      {1, 20.0, 0, 0},
-      {2, 10.0, 0, 0},
-      {3, 5.0, 0, 0},
-      {4, 5.0, 0, 0}};
+      {1, 20.0, 0, 0, 0},
+      {2, 10.0, 0, 0, 0},
+      {3, 5.0, 0, 0, 0},
+      {4, 5.0, 0, 0, 0}};
 
   children_linear[0] = child1;
   children_linear[1] = child2;

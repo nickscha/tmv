@@ -37,6 +37,8 @@ typedef struct tmv_treemap_item
   int id;
   double weight;
 
+  void *user_data;
+
   /* Hierarchy */
   struct tmv_treemap_item *children;
   int children_count;

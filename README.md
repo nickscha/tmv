@@ -41,17 +41,17 @@ int main() {
     id: 7, x: 25, y:  0, width: 25, height: 25  <- child3
     id: 8, x: 25, y: 25, width: 25, height: 25  <- child4
     */
-    tmv_treemap_item child1 = {5, 2.5, 0, 0};
-    tmv_treemap_item child2 = {6, 2.5, 0, 0};
-    tmv_treemap_item child3 = {7, 2.5, 0, 0};
-    tmv_treemap_item child4 = {8, 2.5, 0, 0};
+    tmv_treemap_item child1 = {5, 2.5, 0, 0, 0};
+    tmv_treemap_item child2 = {6, 2.5, 0, 0, 0};
+    tmv_treemap_item child3 = {7, 2.5, 0, 0, 0};
+    tmv_treemap_item child4 = {8, 2.5, 0, 0, 0};
     tmv_treemap_item children[4];
 
     tmv_treemap_item items[] = {
-        {1, 10.0, 0, 4},
-        {2, 10.0, 0, 0},
-        {3, 10.0, 0, 0},
-        {4, 10.0, 0, 0}};
+        {1, 10.0, 0, 0, 4},
+        {2, 10.0, 0, 0, 0},
+        {3, 10.0, 0, 0, 0},
+        {4, 10.0, 0, 0, 0}};
 
     children[0] = child1;
     children[1] = child2;
