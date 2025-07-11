@@ -1,6 +1,11 @@
 # tmv
 A C89 standard compliant, single header, nostdlib (no C Standard Library) squarified tree map viewer (TMV).
 
+<p align="left">
+  <img src="assets/tmv_linear.png" alt="Linear Treemap" width="200" height="200" />
+  <img src="assets/tmv_weighted.png" alt="Weighted/Nested Treemap" width="200" height="200" />
+</p>
+
 It uses the paper "Squarified Treemaps" algorythm by Mark Bruls, Kees Huizing, and Jarke J. van Wijk.
 
 For more information please look at the "tmv.h" file or take a look at the "examples" or "tests" folder.
