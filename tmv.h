@@ -125,6 +125,22 @@ TMV_API TMV_INLINE double tmv_total_weight(tmv_treemap_item *items, int count)
   return sum;
 }
 
+TMV_API TMV_INLINE double tmv_max_weight_current(tmv_treemap_item *items, int count)
+{
+  int i;
+  double max = 0.0;
+
+  for (i = 0; i < count; ++i)
+  {
+    double weight = items[i].weight;
+    if (weight > max)
+    {
+      max = weight;
+    }
+  }
+  return max;
+}
+
 TMV_API TMV_INLINE void tmv_layout_row(
     tmv_treemap_item *row_items,
     int row_count,
