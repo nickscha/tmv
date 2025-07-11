@@ -111,7 +111,7 @@ static void tmv_to_svg_linear_weights(void)
   );
 
   /* Write to SVG file */
-  tmv_write_to_svg("tmv_to_svg_linear_weights.svg", area_width, area_height, rects, rect_count, items, TMV_ARRAY_SIZE(items), 0.0, 625.0);
+  tmv_write_to_svg("tmv_to_svg_linear_weights.svg", area_width, area_height, rects, rect_count, items, tmv_total_items(items, TMV_ARRAY_SIZE(items)), 0.0, 625.0);
 }
 
 static void tmv_to_svg_nested(void)
@@ -168,7 +168,7 @@ static void tmv_to_svg_nested(void)
   );
 
   /* Write to SVG file */
-  tmv_write_to_svg("tmv_to_svg_nested.svg", area_width, area_height, rects, rect_count, items, 4 + 8, 1.25, 20.0);
+  tmv_write_to_svg("tmv_to_svg_nested.svg", area_width, area_height, rects, rect_count, items, tmv_total_items(items, TMV_ARRAY_SIZE(items)), 1.25, 20.0);
 }
 
 /*
