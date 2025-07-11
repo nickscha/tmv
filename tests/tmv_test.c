@@ -14,7 +14,13 @@ LICENSE
 
 #include "test.h" /* Simple Testing framework */
 
+TMV_API TMV_INLINE double tmv_fabs(double x)
+{
+  return (x < 0.0) ? -x : x;
+}
+
 #define TMV_MAX_RECTS 1024
+#define TMV_ASSERT_DBL_EQ(a, b) assert(tmv_fabs((a) - (b)) < 1e-6)
 
 void tmv_test_print_rects(tmv_treemap_rect *rects, int rect_count)
 {
@@ -127,13 +133,52 @@ void tmv_test_simple_recursive_layout(void)
 
   found = tmv_find_item_by_id(items, TMV_ARRAY_SIZE(items), 3);
   assert(found->id == 3);
-  assert(found->weight == 10.0);
+  TMV_ASSERT_DBL_EQ(found->weight, 10.0);
+}
+
+void tmv_test_simple_more_items(void)
+{
+  /* Define a output buffer for output rects */
+  tmv_treemap_rect rects[TMV_MAX_RECTS];
+  int rect_count = 0;
+
+#define TMVTSMI_ITEMS 625 /* 25*25 equal weighted items on a 100x100 grid */
+  tmv_treemap_item items[TMVTSMI_ITEMS];
+
+  int i;
+
+  for (i = 0; i < TMVTSMI_ITEMS; ++i)
+  {
+    tmv_treemap_item item = {0};
+    item.id = i;
+    item.weight = 1.0;
+    items[i] = item;
+  }
+
+  /* Build squarified recursive treemap view */
+  tmv_squarify(
+      items,                 /* List of treemap items */
+      TMV_ARRAY_SIZE(items), /* Size of top level items */
+      0, 0,                  /* Treemap view area start */
+      100, 100,              /* Treemap view area width and height */
+      rects,                 /* The output buffer for rectangular shapes computed */
+      &rect_count            /* The number of rectangular shapes computed */
+  );
+
+  assert(rect_count == TMVTSMI_ITEMS);
+
+  for (i = 0; i < rect_count; ++i)
+  {
+    tmv_treemap_rect rect = rects[i];
+    TMV_ASSERT_DBL_EQ(rect.width + rect.height, 8.0);
+  }
 }
 
 int main(void)
 {
   tmv_test_simple_layout();
   tmv_test_simple_recursive_layout();
+  tmv_test_simple_more_items();
 
   return 0;
 }
