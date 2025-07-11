@@ -189,7 +189,7 @@ int main(void)
 /*
    ------------------------------------------------------------------------------
    This software is available under 2 licenses -- choose whichever you prefer.
-   ------------------------------------------------------------------------------
+   ------------------------------------------------------------------------
    ALTERNATIVE A - MIT License
    Copyright (c) 2025 nickscha
    Permission is hereby granted, free of charge, to any person obtaining a copy of
