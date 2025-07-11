@@ -125,7 +125,32 @@ TMV_API TMV_INLINE double tmv_total_weight(tmv_treemap_item *items, int count)
   return sum;
 }
 
-TMV_API TMV_INLINE double tmv_max_weight_current(tmv_treemap_item *items, int count)
+TMV_API TMV_INLINE double tmv_min_weight(tmv_treemap_item *items, int count)
+{
+  double min_weight = items[0].weight;
+  int i;
+
+  for (i = 0; i < count; ++i)
+  {
+    if (items[i].weight < min_weight)
+    {
+      min_weight = items[i].weight;
+    }
+
+    if (items[i].children && items[i].children_count > 0)
+    {
+      double child_min = tmv_min_weight(items[i].children, items[i].children_count);
+      if (child_min < min_weight)
+      {
+        min_weight = child_min;
+      }
+    }
+  }
+
+  return min_weight;
+}
+
+TMV_API TMV_INLINE double tmv_max_weight(tmv_treemap_item *items, int count)
 {
   int i;
   double max = 0.0;
@@ -136,6 +161,15 @@ TMV_API TMV_INLINE double tmv_max_weight_current(tmv_treemap_item *items, int co
     if (weight > max)
     {
       max = weight;
+    }
+
+    if (items[i].children && items[i].children_count > 0)
+    {
+      double child_max = tmv_max_weight(items[i].children, items[i].children_count);
+      if (child_max > max)
+      {
+        max = child_max;
+      }
     }
   }
   return max;
