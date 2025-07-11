@@ -98,16 +98,16 @@ TMV_API TMV_INLINE void tmv_layout_row(
     int *rects_count)
 {
   int i;
-  double total_weight = tmv_total_weight(row_items, row_count);
   double area = width * height;
+  double total_weight = tmv_total_weight(row_items, row_count);
+  double scale = (total_weight > 0.0) ? (area / total_weight) : 0.0;
 
   int horizontal = (width >= height);
-
   double offset = 0.0;
 
   for (i = 0; i < row_count; ++i)
   {
-    double item_area = (row_items[i].weight / total_weight) * area;
+    double item_area = row_items[i].weight * scale;
     double w, h;
 
     if (horizontal)
