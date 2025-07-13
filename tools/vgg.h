@@ -30,10 +30,13 @@ LICENSE
 #define VGG_API static
 #endif
 
-typedef struct vgg_svg_color
+typedef struct vgg_color
 {
-  unsigned char r, g, b;
-} vgg_svg_color;
+  int r;
+  int g;
+  int b;
+
+} vgg_color;
 
 typedef struct vgg_svg_writer
 {
@@ -48,6 +51,37 @@ typedef struct vgg_svg_data_field
   char *value;
 
 } vgg_svg_data_field;
+
+VGG_API VGG_INLINE vgg_color vgg_color_map_linear(
+    double value_current,
+    double value_min,
+    double value_max,
+    vgg_color color_start,
+    vgg_color color_end)
+{
+  vgg_color color;
+
+  /* Clamp and normalize the weight */
+  double t = 0.0;
+  if (value_max > value_min)
+  {
+    t = (value_current - value_min) / (value_max - value_min);
+    if (t < 0.0)
+    {
+      t = 0.0;
+    }
+    if (t > 1.0)
+    {
+      t = 1.0;
+    }
+  }
+
+  color.r = (int) (color_start.r + t * (color_end.r - color_start.r));
+  color.g = (int) (color_start.g + t * (color_end.g - color_start.g));
+  color.b = (int) (color_start.b + t * (color_end.b - color_start.b));
+
+  return color;
+}
 
 /* Convert datatypes to string */
 
@@ -351,7 +385,7 @@ VGG_API VGG_INLINE void vgg_svg_add_rect(
     vgg_svg_writer *w,
     unsigned int rect_id,
     double x, double y, double width, double height,
-    vgg_svg_color fill,
+    vgg_color fill,
     vgg_svg_data_field *data_fields,
     int data_fields_count)
 {

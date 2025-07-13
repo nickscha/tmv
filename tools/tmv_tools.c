@@ -14,33 +14,8 @@ LICENSE
 #include "vgg.h"
 #include "vgg_platform_write.h"
 
-static vgg_svg_color vgg_map_weight_to_color(double weight, double min_weight, double max_weight)
-{
-  vgg_svg_color color;
-
-  /* Clamp and normalize the weight */
-  double t = 0.0;
-  if (max_weight > min_weight)
-  {
-    t = (weight - min_weight) / (max_weight - min_weight);
-    if (t < 0.0)
-    {
-      t = 0.0;
-    }
-    if (t > 1.0)
-    {
-      t = 1.0;
-    }
-  }
-
-  /* Start (light teal): 144, 224, 239 */
-  /*  End (dark orange): 255,  85,   0 */
-  color.r = (unsigned char)(144 + t * (255 - 144));
-  color.g = (unsigned char)(224 + t * (85 - 224));
-  color.b = (unsigned char)(239 + t * (0 - 239));
-
-  return color;
-}
+static vgg_color color_start = {144, 224, 239}; /* Start (light teal): 144, 224, 239 */
+static vgg_color color_end = {255, 85, 0};      /*  End (dark orange): 255,  85,   0 */
 
 #define TMV_MAX_RECTS 2048
 #define VGG_MAX_BUFFER_SIZE 65536 /* SVG Buffer Size */
@@ -61,7 +36,7 @@ static void tmv_write_to_svg(char *filename, double area_width, double area_heig
   {
     tmv_treemap_rect rect = rects[i];
     tmv_treemap_item *item = tmv_find_item_by_id(items, items_count, rect.id);
-    vgg_svg_color color = vgg_map_weight_to_color(item->weight, min_weight, max_weight);
+    vgg_color color = vgg_color_map_linear(item->weight, min_weight, max_weight, color_start, color_end);
 
     vgg_svg_add_rect(
         &w,
@@ -172,12 +147,6 @@ static void tmv_to_svg_nested(void)
   tmv_write_to_svg("tmv_to_svg_nested.svg", area_width, area_height, rects, rect_count, items, tmv_total_items(items, TMV_ARRAY_SIZE(items)), 1.25, 20.0);
 }
 
-/*
-  rect {
-    stroke-width:0.05;
-    stroke: black;
-  }
-*/
 int main(void)
 {
   tmv_to_svg_linear_weights();
