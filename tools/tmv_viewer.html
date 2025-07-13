@@ -11,6 +11,8 @@
 <body>
 
     <div id="svg-container"></div>
+    <button onclick="exportSVGasPNG()">Export as PNG</button>
+    <canvas id="canvas" style="display:none;"></canvas>
     <div id="info-box">Select/Hover over rects to see information</div>
 
     <style>
@@ -43,9 +45,65 @@
         fetch('tmv_files.svg')
             .then(res => res.text())
             .then(svgText => {
-                document.getElementById("svg-container").innerHTML = svgText;
-                requestAnimationFrame(initializeSVG); // defer to allow DOM paint
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svgText, "image/svg+xml");
+                const svgElement = svgDoc.documentElement;
+
+                // Ensure it has correct namespace
+                svgElement.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
+                const container = document.getElementById("svg-container");
+                container.innerHTML = ""; // clear first
+                container.appendChild(svgElement);
+
+                requestAnimationFrame(initializeSVG);
             });
+
+        function exportSVGasPNG(scale = 2) {
+            const svgElement = document.querySelector("svg");
+            const width = parseFloat(svgElement.getAttribute("width")) || 800;
+            const height = parseFloat(svgElement.getAttribute("height")) || 600;
+
+            const serializer = new XMLSerializer();
+            let svgString = serializer.serializeToString(svgElement);
+
+            if (!svgString.includes("xmlns=")) {
+                svgString = svgString.replace(
+                    "<svg",
+                    `<svg xmlns="http://www.w3.org/2000/svg"`
+                );
+            }
+
+            const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+
+            const img = new Image();
+            img.onload = function () {
+                const canvas = document.getElementById("canvas");
+                canvas.width = width * scale;
+                canvas.height = height * scale;
+
+                const ctx = canvas.getContext("2d");
+                ctx.setTransform(scale, 0, 0, scale, 0, 0); // scale drawing
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                URL.revokeObjectURL(url);
+
+                const pngURL = canvas.toDataURL("image/png");
+
+                // Trigger download
+                const a = document.createElement("a");
+                a.href = pngURL;
+                a.download = "exported.png";
+                a.click();
+            };
+
+            img.onerror = function () {
+                console.error("Failed to load SVG as image");
+            };
+
+            img.src = url;
+        }
 
         function initializeSVG() {
             const svg = document.querySelector("svg");
