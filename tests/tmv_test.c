@@ -43,9 +43,11 @@ void tmv_test_simple_sort(void)
       {3, 20.0, 0, 0, 0},
       {4, 1.0, 0, 0, 0}};
 
+  tmv_stats stats = {0};
+
   assert(TMV_ARRAY_SIZE(items) == 4);
 
-  tmv_squarify(items, TMV_ARRAY_SIZE(items), 0, 0, 100, 100, rects, &rect_count);
+  tmv_squarify(items, TMV_ARRAY_SIZE(items), 0, 0, 100, 100, rects, &rect_count, &stats);
   assert(rect_count == 4);
 
   /* Items are sorted by weight afterwards */
@@ -83,9 +85,11 @@ void tmv_test_simple_layout(void)
       {3, 10.0, 0, 0, 0},
       {4, 10.0, 0, 0, 0}};
 
+  tmv_stats stats = {0};
+
   assert(TMV_ARRAY_SIZE(items) == 4);
 
-  tmv_squarify(items, TMV_ARRAY_SIZE(items), 0, 0, 100, 100, rects, &rect_count);
+  tmv_squarify(items, TMV_ARRAY_SIZE(items), 0, 0, 100, 100, rects, &rect_count, &stats);
   assert(rect_count == 4);
 
   tmv_test_print_rects(rects, rect_count);
@@ -128,6 +132,8 @@ void tmv_test_simple_recursive_layout(void)
       {3, 10.0, 0, 0, 0},
       {4, 10.0, 0, 0, 0}};
 
+  tmv_stats stats = {0};
+
   children[0] = child1;
   children[1] = child2;
   children[2] = child3;
@@ -142,7 +148,8 @@ void tmv_test_simple_recursive_layout(void)
       0, 0,                  /* Treemap view area start */
       100, 100,              /* Treemap view area width and height */
       rects,                 /* The output buffer for rectangular shapes computed */
-      &rect_count            /* The number of rectangular shapes computed */
+      &rect_count,           /* The number of rectangular shapes computed */
+      &stats                 /* The computed statistics */
   );
 
   /* Afterwards you can iterate through the rects */
@@ -176,6 +183,8 @@ void tmv_test_simple_more_items(void)
 #define TMVTSMI_ITEMS 625 /* 25*25 equal weighted items on a 100x100 grid */
   tmv_treemap_item items[TMVTSMI_ITEMS];
 
+  tmv_stats stats = {0};
+
   int i;
 
   for (i = 0; i < TMVTSMI_ITEMS; ++i)
@@ -193,7 +202,8 @@ void tmv_test_simple_more_items(void)
       0, 0,                  /* Treemap view area start */
       100, 100,              /* Treemap view area width and height */
       rects,                 /* The output buffer for rectangular shapes computed */
-      &rect_count            /* The number of rectangular shapes computed */
+      &rect_count,           /* The number of rectangular shapes computed */
+      &stats                 /* The computed statistics */
   );
 
   assert(rect_count == TMVTSMI_ITEMS);

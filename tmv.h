@@ -57,8 +57,10 @@ typedef struct tmv_treemap_rect
 
 typedef struct tmv_stats
 {
-  double min_weight;
-  double max_weight;
+  double weigth_min;
+  double weigth_max;
+  double weigth_sum;
+  long count;
 
 } tmv_stats;
 
@@ -103,51 +105,6 @@ TMV_API TMV_INLINE tmv_treemap_item *tmv_find_item_by_id(tmv_treemap_item *items
   return 0;
 }
 
-TMV_API TMV_INLINE tmv_stats tmv_compute_stats(tmv_treemap_item *items, int count)
-{
-  int i;
-
-  tmv_stats stats;
-  stats.min_weight = -1.0;
-  stats.max_weight = -1.0;
-
-  for (i = 0; i < count; ++i)
-  {
-    if (items[i].children_count == 0)
-    {
-      double w = items[i].weight;
-
-      if (stats.min_weight < 0.0 || w < stats.min_weight)
-      {
-        stats.min_weight = w;
-      }
-
-      if (stats.max_weight < 0.0 || w > stats.max_weight)
-      {
-        stats.max_weight = w;
-      }
-    }
-    else if (items[i].children && items[i].children_count > 0)
-    {
-      tmv_stats child_stats = tmv_compute_stats(items[i].children, items[i].children_count);
-
-      if (child_stats.min_weight >= 0.0 &&
-          (stats.min_weight < 0.0 || child_stats.min_weight < stats.min_weight))
-      {
-        stats.min_weight = child_stats.min_weight;
-      }
-
-      if (child_stats.max_weight >= 0.0 &&
-          (stats.max_weight < 0.0 || child_stats.max_weight > stats.max_weight))
-      {
-        stats.max_weight = child_stats.max_weight;
-      }
-    }
-  }
-
-  return stats;
-}
-
 TMV_API TMV_INLINE void tmv_insertion_sort_stable_desc(tmv_treemap_item *items, int count)
 {
   int i, j;
@@ -185,7 +142,8 @@ TMV_API TMV_INLINE void tmv_layout_row(
     double width,
     double height,
     tmv_treemap_rect *rects,
-    int *rects_count)
+    int *rects_count,
+    tmv_stats *stats)
 {
   int i;
   double area = width * height;
@@ -199,6 +157,24 @@ TMV_API TMV_INLINE void tmv_layout_row(
   {
     double item_area = row_items[i].weight * scale;
     double w, h;
+
+    if (row_items[i].children_count == 0 && stats != 0)
+    {
+      double w = row_items[i].weight;
+
+      if (stats->weigth_min < 0.0 || w < stats->weigth_min)
+      {
+        stats->weigth_min = w;
+      }
+
+      if (stats->weigth_max < 0.0 || w > stats->weigth_max)
+      {
+        stats->weigth_max = w;
+      }
+
+      stats->weigth_sum += w;
+      stats->count += 1;
+    }
 
     if (horizontal)
     {
@@ -234,7 +210,8 @@ TMV_API TMV_INLINE void tmv_squarify_current(
     double width,            /* The width for the treemap */
     double height,           /* The height for the treemap */
     tmv_treemap_rect *rects, /* The output rects that have been computed */
-    int *rects_count         /* The number of output rects computed */
+    int *rects_count,        /* The number of output rects computed */
+    tmv_stats *stats         /* The output stats/metrics */
 )
 {
   int start = 0;
@@ -307,13 +284,13 @@ TMV_API TMV_INLINE void tmv_squarify_current(
 
     if (width >= height)
     {
-      tmv_layout_row(&items[start], row_count, x, y, row_length, height, rects, rects_count);
+      tmv_layout_row(&items[start], row_count, x, y, row_length, height, rects, rects_count, stats);
       x += row_length;
       width -= row_length;
     }
     else
     {
-      tmv_layout_row(&items[start], row_count, x, y, width, row_length, rects, rects_count);
+      tmv_layout_row(&items[start], row_count, x, y, width, row_length, rects, rects_count, stats);
       y += row_length;
       height -= row_length;
     }
@@ -330,7 +307,8 @@ TMV_API TMV_INLINE void tmv_squarify(
     double width,            /* The width for the treemap */
     double height,           /* The height for the treemap */
     tmv_treemap_rect *rects, /* The output rects that have been computed */
-    int *rects_count         /* The number of output rects computed */
+    int *rects_count,        /* The output number of rects computed */
+    tmv_stats *stats         /* The output stats/metrics */
 )
 {
   int i;
@@ -342,7 +320,7 @@ TMV_API TMV_INLINE void tmv_squarify(
   }
 
   /* Lay out the current level */
-  tmv_squarify_current(items, items_count, x, y, width, height, rects, rects_count);
+  tmv_squarify_current(items, items_count, x, y, width, height, rects, rects_count, stats);
 
   /* For each item, recurse into children if any */
   for (i = *rects_count - items_count, j = 0; j < items_count; ++j, ++i)
@@ -361,7 +339,8 @@ TMV_API TMV_INLINE void tmv_squarify(
           parent_rect->width,
           parent_rect->height,
           rects,
-          rects_count);
+          rects_count,
+          stats);
     }
   }
 }

@@ -60,6 +60,8 @@ static void tmv_to_svg_linear_weights(void)
   int area_width = 400;
   int area_height = 400;
 
+  tmv_stats stats = {0};
+
   /* Define a output buffer for output rects */
   tmv_treemap_rect rects[TMV_MAX_RECTS];
   int rect_count = 0;
@@ -83,17 +85,20 @@ static void tmv_to_svg_linear_weights(void)
       0, 0,                    /* Treemap view area start */
       area_width, area_height, /* Treemap view area width and height */
       rects,                   /* The output buffer for rectangular shapes computed */
-      &rect_count              /* The number of rectangular shapes computed */
+      &rect_count,             /* The number of rectangular shapes computed */
+      &stats                   /* The calculated statistic */
   );
 
   /* Write to SVG file */
-  tmv_write_to_svg("tmv_to_svg_linear_weights.svg", area_width, area_height, rects, rect_count, items, tmv_total_items(items, TMV_ARRAY_SIZE(items)), 0.0, 625.0);
+  tmv_write_to_svg("tmv_to_svg_linear_weights.svg", area_width, area_height, rects, rect_count, items, tmv_total_items(items, TMV_ARRAY_SIZE(items)), stats.weigth_min, stats.weigth_max);
 }
 
 static void tmv_to_svg_nested(void)
 {
   int area_width = 400;
   int area_height = 400;
+
+  tmv_stats stats = {0};
 
   /* Define a output buffer for output rects */
   tmv_treemap_rect rects[TMV_MAX_RECTS];
@@ -140,11 +145,12 @@ static void tmv_to_svg_nested(void)
       0, 0,                    /* Treemap view area start */
       area_width, area_height, /* Treemap view area width and height */
       rects,                   /* The output buffer for rectangular shapes computed */
-      &rect_count              /* The number of rectangular shapes computed */
+      &rect_count,             /* The number of rectangular shapes computed */
+      &stats                   /* The calculated statistics */
   );
 
   /* Write to SVG file */
-  tmv_write_to_svg("tmv_to_svg_nested.svg", area_width, area_height, rects, rect_count, items, tmv_total_items(items, TMV_ARRAY_SIZE(items)), 1.25, 20.0);
+  tmv_write_to_svg("tmv_to_svg_nested.svg", area_width, area_height, rects, rect_count, items, tmv_total_items(items, TMV_ARRAY_SIZE(items)), stats.weigth_min, stats.weigth_max);
 }
 
 int main(void)

@@ -25,6 +25,8 @@ int main() {
 
     #define TMV_MAX_RECTS 1024
 
+    tmv_stats stats = {0};
+
     /* Define a output buffer for output rects */
     tmv_treemap_rect rects[TMV_MAX_RECTS];
     int rects_count = 0;
@@ -68,10 +70,11 @@ int main() {
         0, 0,                  /* Treemap view area start                */
         100, 100,              /* Treemap view area width and height     */
         rects,                 /* Output buffer for rect shapes computed */
-        &rects_count           /* Number of rect shapes computed         */
+        &rects_count,          /* Number of rect shapes computed         */
+        &stats                 /* The computed statistics                */
     );
 
-    /* Afterwards you can iterate through the rects */
+    /* Afterwards you can iterate through the rects with rects_count */
 
     return 0;
 }
