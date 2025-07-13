@@ -127,8 +127,8 @@ TMV_BINDING_JAVA_API TMV_BINDING_JAVA_INLINE void tmv_binding_java_map(tmv_treem
 
 int main(void)
 {
-    char *java_source_file = "public class HelloWorld {\n\npublic static void main(String[] args) {\n \tif(a==b) {new System.out.println(\"Hello World!\");\n}}\n\n}\n// End\n";
-    unsigned long java_source_file_size = 133;
+    char *java_source_file = "import java.io.*; public class HelloWorld {\n\npublic static void main(String[] args) {\n \tif(a==b) {new System.out.println(\"Hello World!\");\n}}\n\n}\n// End\n";
+    unsigned long java_source_file_size = 151;
 
     tmv_binding_java_user_data data = {0};
     tmv_treemap_item result = {0};
