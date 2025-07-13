@@ -11,8 +11,8 @@ LICENSE
 
 */
 #include "../tmv.h"
-#include "vgg.h"
-#include "vgg_platform_write.h"
+#include "deps/vgg.h"
+#include "deps/vgg_platform_write.h"
 
 static vgg_color color_start = {144, 224, 239}; /* Start (light teal): 144, 224, 239 */
 static vgg_color color_end = {255, 85, 0};      /*  End (dark orange): 255,  85,   0 */
