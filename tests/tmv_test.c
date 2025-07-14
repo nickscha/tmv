@@ -185,7 +185,7 @@ void tmv_test_simple_more_items(void)
 
   tmv_stats stats = {0};
 
-  int i;
+  unsigned int i;
 
   for (i = 0; i < TMVTSMI_ITEMS; ++i)
   {
@@ -208,7 +208,7 @@ void tmv_test_simple_more_items(void)
 
   assert(rect_count == TMVTSMI_ITEMS);
 
-  for (i = 0; i < rect_count; ++i)
+  for (i = 0; i < (unsigned int)rect_count; ++i)
   {
     tmv_treemap_rect rect = rects[i];
     TMV_ASSERT_DBL_EQ(rect.width + rect.height, 8.0);
