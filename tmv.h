@@ -135,22 +135,19 @@ TMV_API TMV_INLINE double tmv_total_weight(tmv_item *items, int count)
 }
 
 TMV_API TMV_INLINE void tmv_layout_row(
+    tmv_rect row_area,
     tmv_item *row_items,
     int row_count,
-    double x,
-    double y,
-    double width,
-    double height,
     tmv_rect *rects,
     int *rects_count,
     tmv_stats *stats)
 {
   int i;
-  double area = width * height;
+  double area = row_area.width * row_area.height;
   double total_weight = tmv_total_weight(row_items, row_count);
   double scale = (total_weight > 0.0) ? (area / total_weight) : 0.0;
 
-  int horizontal = (width >= height);
+  int horizontal = (row_area.width >= row_area.height);
   double offset = 0.0;
 
   for (i = 0; i < row_count; ++i)
@@ -178,20 +175,20 @@ TMV_API TMV_INLINE void tmv_layout_row(
 
     if (horizontal)
     {
-      w = item_area / height;
-      h = height;
-      rects[*rects_count].x = x + offset;
-      rects[*rects_count].y = y;
+      w = item_area / row_area.height;
+      h = row_area.height;
+      rects[*rects_count].x = row_area.x + offset;
+      rects[*rects_count].y = row_area.y;
       rects[*rects_count].width = w;
       rects[*rects_count].height = h;
       offset += w;
     }
     else
     {
-      w = width;
-      h = item_area / width;
-      rects[*rects_count].x = x;
-      rects[*rects_count].y = y + offset;
+      w = row_area.width;
+      h = item_area / row_area.width;
+      rects[*rects_count].x = row_area.x;
+      rects[*rects_count].y = row_area.y + offset;
       rects[*rects_count].width = w;
       rects[*rects_count].height = h;
       offset += h;
@@ -203,20 +200,17 @@ TMV_API TMV_INLINE void tmv_layout_row(
 }
 
 TMV_API TMV_INLINE void tmv_squarify_current(
-    tmv_item *items,  /* The descending by weight sorted treemap items*/
-    int items_count,  /* The number of items */
-    double x,         /* x */
-    double y,         /* y */
-    double width,     /* The width for the treemap */
-    double height,    /* The height for the treemap */
-    tmv_rect *rects,  /* The output rects that have been computed */
-    int *rects_count, /* The number of output rects computed */
-    tmv_stats *stats  /* The output stats/metrics */
+    tmv_rect render_area, /* The area on which the squarified treemap should be aligned */
+    tmv_item *items,      /* The descending by weight sorted treemap items*/
+    int items_count,      /* The number of items */
+    tmv_rect *rects,      /* The output rects that have been computed */
+    int *rects_count,     /* The number of output rects computed */
+    tmv_stats *stats      /* The output stats/metrics */
 )
 {
   int start = 0;
   double total_weight = tmv_total_weight(items, items_count);
-  double area = width * height;
+  double area = render_area.width * render_area.height;
   double scale = (total_weight > 0.0) ? (area / total_weight) : 0.0;
 
   tmv_insertion_sort_stable_desc(items, items_count);
@@ -228,7 +222,7 @@ TMV_API TMV_INLINE void tmv_squarify_current(
     double worst = 1e9;
     int i;
 
-    double side = (width >= height) ? height : width;
+    double side = (render_area.width >= render_area.height) ? render_area.height : render_area.width;
 
     double row_length;
     int row_count;
@@ -282,17 +276,23 @@ TMV_API TMV_INLINE void tmv_squarify_current(
     row_length = (row_weight / total_weight) * (area / side);
     row_count = end - start;
 
-    if (width >= height)
+    if (render_area.width >= render_area.height)
     {
-      tmv_layout_row(&items[start], row_count, x, y, row_length, height, rects, rects_count, stats);
-      x += row_length;
-      width -= row_length;
+      tmv_rect row_area = render_area;
+      row_area.width = row_length;
+
+      tmv_layout_row(row_area, &items[start], row_count, rects, rects_count, stats);
+      render_area.x += row_length;
+      render_area.width -= row_length;
     }
     else
     {
-      tmv_layout_row(&items[start], row_count, x, y, width, row_length, rects, rects_count, stats);
-      y += row_length;
-      height -= row_length;
+      tmv_rect row_area = render_area;
+      row_area.height = row_length;
+
+      tmv_layout_row(row_area, &items[start], row_count, rects, rects_count, stats);
+      render_area.y += row_length;
+      render_area.height -= row_length;
     }
 
     start = end;
@@ -300,12 +300,9 @@ TMV_API TMV_INLINE void tmv_squarify_current(
 }
 
 TMV_API TMV_INLINE void tmv_squarify(
+    tmv_rect area,    /* The area on which the squarified treemap should be aligned */
     tmv_item *items,  /* The descending by weight sorted treemap items*/
     int items_count,  /* The number of items */
-    double x,         /* x */
-    double y,         /* y */
-    double width,     /* The width for the treemap */
-    double height,    /* The height for the treemap */
     tmv_rect *rects,  /* The output rects that have been computed */
     int *rects_count, /* The output number of rects computed */
     tmv_stats *stats  /* The output stats/metrics */
@@ -320,7 +317,7 @@ TMV_API TMV_INLINE void tmv_squarify(
   }
 
   /* Lay out the current level */
-  tmv_squarify_current(items, items_count, x, y, width, height, rects, rects_count, stats);
+  tmv_squarify_current(area, items, items_count, rects, rects_count, stats);
 
   /* For each item, recurse into children if any */
   for (i = *rects_count - items_count, j = 0; j < items_count; ++j, ++i)
@@ -329,15 +326,12 @@ TMV_API TMV_INLINE void tmv_squarify(
 
     if (item->children_count > 0)
     {
-      tmv_rect *parent_rect = &rects[i];
+      tmv_rect parent_rect = rects[i];
 
       tmv_squarify(
+          parent_rect,
           item->children,
           item->children_count,
-          parent_rect->x,
-          parent_rect->y,
-          parent_rect->width,
-          parent_rect->height,
           rects,
           rects_count,
           stats);

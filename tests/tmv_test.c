@@ -34,6 +34,9 @@ void tmv_test_print_rects(tmv_rect *rects, int rect_count)
 
 void tmv_test_simple_sort(void)
 {
+  /* The area on which the squarified treemap should be aligned */
+  tmv_rect area = {0, 0, 0, 100, 100};
+
   tmv_rect rects[TMV_MAX_RECTS];
   int rect_count = 0;
 
@@ -47,7 +50,7 @@ void tmv_test_simple_sort(void)
 
   assert(TMV_ARRAY_SIZE(items) == 4);
 
-  tmv_squarify(items, TMV_ARRAY_SIZE(items), 0, 0, 100, 100, rects, &rect_count, &stats);
+  tmv_squarify(area, items, TMV_ARRAY_SIZE(items), rects, &rect_count, &stats);
   assert(rect_count == 4);
 
   /* Items are sorted by weight afterwards */
@@ -67,6 +70,9 @@ void tmv_test_simple_sort(void)
 
 void tmv_test_simple_layout(void)
 {
+  /* The area on which the squarified treemap should be aligned */
+  tmv_rect area = {0, 0, 0, 100, 100};
+
   tmv_rect rects[TMV_MAX_RECTS];
   int rect_count = 0;
 
@@ -89,7 +95,7 @@ void tmv_test_simple_layout(void)
 
   assert(TMV_ARRAY_SIZE(items) == 4);
 
-  tmv_squarify(items, TMV_ARRAY_SIZE(items), 0, 0, 100, 100, rects, &rect_count, &stats);
+  tmv_squarify(area, items, TMV_ARRAY_SIZE(items), rects, &rect_count, &stats);
   assert(rect_count == 4);
 
   tmv_test_print_rects(rects, rect_count);
@@ -103,6 +109,9 @@ void tmv_test_simple_layout(void)
 void tmv_test_simple_recursive_layout(void)
 {
   tmv_item *found;
+
+  /* The area on which the squarified treemap should be aligned */
+  tmv_rect area = {0, 0, 0, 100, 100};
 
   /* Define a output buffer for output rects */
   tmv_rect rects[TMV_MAX_RECTS];
@@ -143,10 +152,9 @@ void tmv_test_simple_recursive_layout(void)
 
   /* Build squarified recursive treemap view */
   tmv_squarify(
+      area,                  /* The area on which the squarified treemap should be aligned */
       items,                 /* List of treemap items */
       TMV_ARRAY_SIZE(items), /* Size of top level items */
-      0, 0,                  /* Treemap view area start */
-      100, 100,              /* Treemap view area width and height */
       rects,                 /* The output buffer for rectangular shapes computed */
       &rect_count,           /* The number of rectangular shapes computed */
       &stats                 /* The computed statistics */
@@ -176,6 +184,9 @@ void tmv_test_simple_recursive_layout(void)
 
 void tmv_test_simple_more_items(void)
 {
+  /* The area on which the squarified treemap should be aligned */
+  tmv_rect area = {0, 0, 0, 100, 100};
+
   /* Define a output buffer for output rects */
   tmv_rect rects[TMV_MAX_RECTS];
   int rect_count = 0;
@@ -197,10 +208,9 @@ void tmv_test_simple_more_items(void)
 
   /* Build squarified recursive treemap view */
   tmv_squarify(
+      area,                  /* The area on which the squarified treemap should be aligned */
       items,                 /* List of treemap items */
       TMV_ARRAY_SIZE(items), /* Size of top level items */
-      0, 0,                  /* Treemap view area start */
-      100, 100,              /* Treemap view area width and height */
       rects,                 /* The output buffer for rectangular shapes computed */
       &rect_count,           /* The number of rectangular shapes computed */
       &stats                 /* The computed statistics */

@@ -57,8 +57,8 @@ static void tmv_write_to_svg(char *filename, double area_width, double area_heig
 static void tmv_to_svg_linear_weights(void)
 {
 
-  int area_width = 400;
-  int area_height = 400;
+  /* The area on which the squarified treemap should be aligned */
+  tmv_rect area = {0, 0, 0, 400, 400};
 
   tmv_stats stats = {0};
 
@@ -80,23 +80,22 @@ static void tmv_to_svg_linear_weights(void)
 
   /* Build squarified recursive treemap view */
   tmv_squarify(
-      items,                   /* List of treemap items */
-      TMV_ARRAY_SIZE(items),   /* Size of top level items */
-      0, 0,                    /* Treemap view area start */
-      area_width, area_height, /* Treemap view area width and height */
-      rects,                   /* The output buffer for rectangular shapes computed */
-      &rect_count,             /* The number of rectangular shapes computed */
-      &stats                   /* The calculated statistic */
+      area,                  /* The area on which the squarified treemap should be aligned */
+      items,                 /* List of treemap items */
+      TMV_ARRAY_SIZE(items), /* Size of top level items */
+      rects,                 /* The output buffer for rectangular shapes computed */
+      &rect_count,           /* The number of rectangular shapes computed */
+      &stats                 /* The calculated statistic */
   );
 
   /* Write to SVG file */
-  tmv_write_to_svg("tmv_to_svg_linear_weights.svg", area_width, area_height, rects, rect_count, items, tmv_total_items(items, TMV_ARRAY_SIZE(items)), stats.weigth_min, stats.weigth_max);
+  tmv_write_to_svg("tmv_to_svg_linear_weights.svg", area.width, area.height, rects, rect_count, items, tmv_total_items(items, TMV_ARRAY_SIZE(items)), stats.weigth_min, stats.weigth_max);
 }
 
 static void tmv_to_svg_nested(void)
 {
-  int area_width = 400;
-  int area_height = 400;
+  /* The area on which the squarified treemap should be aligned */
+  tmv_rect area = {0, 0, 0, 400, 400};
 
   tmv_stats stats = {0};
 
@@ -140,17 +139,16 @@ static void tmv_to_svg_nested(void)
 
   /* Build squarified recursive treemap view */
   tmv_squarify(
-      items,                   /* List of treemap items */
-      4,                       /* Size of top level items */
-      0, 0,                    /* Treemap view area start */
-      area_width, area_height, /* Treemap view area width and height */
-      rects,                   /* The output buffer for rectangular shapes computed */
-      &rect_count,             /* The number of rectangular shapes computed */
-      &stats                   /* The calculated statistics */
+      area,        /* The area on which the squarified treemap should be aligned */
+      items,       /* List of treemap items */
+      4,           /* Size of top level items */
+      rects,       /* The output buffer for rectangular shapes computed */
+      &rect_count, /* The number of rectangular shapes computed */
+      &stats       /* The calculated statistics */
   );
 
   /* Write to SVG file */
-  tmv_write_to_svg("tmv_to_svg_nested.svg", area_width, area_height, rects, rect_count, items, tmv_total_items(items, TMV_ARRAY_SIZE(items)), stats.weigth_min, stats.weigth_max);
+  tmv_write_to_svg("tmv_to_svg_nested.svg", area.width, area.height, rects, rect_count, items, tmv_total_items(items, TMV_ARRAY_SIZE(items)), stats.weigth_min, stats.weigth_max);
 }
 
 int main(void)

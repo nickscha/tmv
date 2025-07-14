@@ -25,6 +25,9 @@ int main() {
 
     #define TMV_MAX_RECTS 1024
 
+    /* The area on which the squarified treemap should be aligned */
+    tmv_rect area = {0, 0, 0, 100, 100};
+
     tmv_stats stats = {0};
 
     /* Define a output buffer for output rects */
@@ -65,10 +68,9 @@ int main() {
 
     /* Build squarified recursive treemap view */
     tmv_squarify(
+        area,                  /* The render area size for treemap       */
         items,                 /* List of treemap items                  */
         TMV_ARRAY_SIZE(items), /* Size of top level items                */
-        0, 0,                  /* Treemap view area start                */
-        100, 100,              /* Treemap view area width and height     */
         rects,                 /* Output buffer for rect shapes computed */
         &rects_count,          /* Number of rect shapes computed         */
         &stats                 /* The computed statistics                */
