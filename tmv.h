@@ -34,7 +34,7 @@ LICENSE
 
 typedef struct tmv_treemap_item
 {
-  int id;
+  unsigned int id;
   double weight;
 
   void *user_data;
@@ -47,7 +47,7 @@ typedef struct tmv_treemap_item
 
 typedef struct tmv_treemap_rect
 {
-  int id;
+  unsigned int id;
   double x;
   double y;
   double width;
@@ -82,7 +82,7 @@ TMV_API TMV_INLINE int tmv_total_items(tmv_treemap_item *items, int items_count)
   return total;
 }
 
-TMV_API TMV_INLINE tmv_treemap_item *tmv_find_item_by_id(tmv_treemap_item *items, int count, int id)
+TMV_API TMV_INLINE tmv_treemap_item *tmv_find_item_by_id(tmv_treemap_item *items, int count, unsigned int id)
 {
   int i;
   for (i = 0; i < count; ++i)

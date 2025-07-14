@@ -38,19 +38,50 @@ typedef struct vgg_color
 
 } vgg_color;
 
+typedef struct vgg_data_field
+{
+  char *key;
+  char *value;
+
+} vgg_data_field;
+
+typedef enum vgg_header_type
+{
+  VGG_TYPE_RECT
+
+} vgg_header_type;
+
+typedef struct vgg_header
+{
+  vgg_header_type type;
+
+  unsigned int id;
+
+  vgg_data_field *data_fields;
+  unsigned int data_fields_count;
+
+  vgg_color color_fill;
+
+} vgg_header;
+
+typedef struct vgg_rect
+{
+  vgg_header header;
+
+  double x;
+  double y;
+  double width;
+  double height;
+
+} vgg_rect;
+
 typedef struct vgg_svg_writer
 {
   unsigned char *buffer;
   int capacity;
   int length;
+
 } vgg_svg_writer;
-
-typedef struct vgg_svg_data_field
-{
-  char *key;
-  char *value;
-
-} vgg_svg_data_field;
 
 VGG_API VGG_INLINE vgg_color vgg_color_map_linear(
     double value_current,
@@ -76,9 +107,9 @@ VGG_API VGG_INLINE vgg_color vgg_color_map_linear(
     }
   }
 
-  color.r = (int) (color_start.r + t * (color_end.r - color_start.r));
-  color.g = (int) (color_start.g + t * (color_end.g - color_start.g));
-  color.b = (int) (color_start.b + t * (color_end.b - color_start.b));
+  color.r = (int)(color_start.r + t * (color_end.r - color_start.r));
+  color.g = (int)(color_start.g + t * (color_end.g - color_start.g));
+  color.b = (int)(color_start.b + t * (color_end.b - color_start.b));
 
   return color;
 }
@@ -103,7 +134,9 @@ VGG_API VGG_INLINE char *vgg_itoa(int value, char *buffer)
 
   sign = (value < 0) ? -1 : 1;
   if (sign == -1)
+  {
     value = -value;
+  }
 
   while (value != 0)
   {
@@ -111,11 +144,15 @@ VGG_API VGG_INLINE char *vgg_itoa(int value, char *buffer)
     value /= 10;
   }
   if (sign == -1)
+  {
     temp[i++] = '-';
+  }
 
   /* reverse */
-  for (j = 0; j < i; j++)
+  for (j = 0; j < i; ++j)
+  {
     buffer[j] = temp[i - j - 1];
+  }
   buffer[i] = 0;
   return buffer;
 }
@@ -143,10 +180,14 @@ VGG_API VGG_INLINE char *vgg_ltoa(long value, char *buffer)
     value /= 10;
   }
   if (sign == -1)
+  {
     temp[i++] = '-';
+  }
 
-  for (j = 0; j < i; j++)
+  for (j = 0; j < i; ++j)
+  {
     buffer[j] = temp[i - j - 1];
+  }
   buffer[i] = 0;
   return buffer;
 }
@@ -170,8 +211,10 @@ VGG_API VGG_INLINE char *vgg_ultoa(unsigned long value, char *buffer)
     value /= 10;
   }
 
-  for (j = 0; j < i; j++)
+  for (j = 0; j < i; ++j)
+  {
     buffer[j] = temp[i - j - 1];
+  }
   buffer[i] = 0;
   return buffer;
 }
@@ -182,9 +225,13 @@ VGG_API VGG_INLINE char *vgg_ftoa(double value, char *buffer, int precision)
   int multiplier = 1;
 
   if (precision < 0)
+  {
     precision = 0;
+  }
   if (precision > 9)
+  {
     precision = 9; /* prevent overflow */
+  }
 
   /* Sign */
   if (value < 0)
@@ -239,11 +286,15 @@ VGG_API VGG_INLINE char *vgg_ftoa(double value, char *buffer, int precision)
 
       /* Zero padding if needed */
       while (k < precision)
+      {
         temp[k++] = '0';
+      }
 
       /* Copy reversed string to buffer */
       while (k > 0)
+      {
         buffer[i++] = temp[--k];
+      }
     }
   }
 
@@ -251,45 +302,45 @@ VGG_API VGG_INLINE char *vgg_ftoa(double value, char *buffer, int precision)
   return buffer;
 }
 
-VGG_API VGG_INLINE vgg_svg_data_field vgg_data_field_create_int(char *key, int value, char *value_buffer)
+VGG_API VGG_INLINE vgg_data_field vgg_data_field_create_int(char *key, int value, char *value_buffer)
 {
-  vgg_svg_data_field df;
+  vgg_data_field df;
   df.key = key;
   vgg_itoa(value, value_buffer);
   df.value = value_buffer;
   return df;
 }
 
-VGG_API VGG_INLINE vgg_svg_data_field vgg_data_field_create_long(char *key, long value, char *value_buffer)
+VGG_API VGG_INLINE vgg_data_field vgg_data_field_create_long(char *key, long value, char *value_buffer)
 {
-  vgg_svg_data_field df;
+  vgg_data_field df;
   df.key = key;
   vgg_ltoa(value, value_buffer);
   df.value = value_buffer;
   return df;
 }
 
-VGG_API VGG_INLINE vgg_svg_data_field vgg_data_field_create_unsigned_long(char *key, unsigned long value, char *value_buffer)
+VGG_API VGG_INLINE vgg_data_field vgg_data_field_create_unsigned_long(char *key, unsigned long value, char *value_buffer)
 {
-  vgg_svg_data_field df;
+  vgg_data_field df;
   df.key = key;
   vgg_ultoa(value, value_buffer);
   df.value = value_buffer;
   return df;
 }
 
-VGG_API VGG_INLINE vgg_svg_data_field vgg_data_field_create_float(char *key, float value, int precision, char *value_buffer)
+VGG_API VGG_INLINE vgg_data_field vgg_data_field_create_float(char *key, float value, int precision, char *value_buffer)
 {
-  vgg_svg_data_field df;
+  vgg_data_field df;
   df.key = key;
   vgg_ftoa((double)value, value_buffer, precision);
   df.value = value_buffer;
   return df;
 }
 
-VGG_API VGG_INLINE vgg_svg_data_field vgg_data_field_create_double(char *key, double value, int precision, char *value_buffer)
+VGG_API VGG_INLINE vgg_data_field vgg_data_field_create_double(char *key, double value, int precision, char *value_buffer)
 {
-  vgg_svg_data_field df;
+  vgg_data_field df;
   df.key = key;
   vgg_ftoa(value, value_buffer, precision);
   df.value = value_buffer;
@@ -297,7 +348,7 @@ VGG_API VGG_INLINE vgg_svg_data_field vgg_data_field_create_double(char *key, do
 }
 
 /* Write a string literal to the buffer */
-VGG_API VGG_INLINE void vgg_svg_puts(vgg_svg_writer *w, const char *s)
+VGG_API VGG_INLINE void vgg_svg_puts(vgg_svg_writer *w, char *s)
 {
   while (*s && w->length < w->capacity)
   {
@@ -367,11 +418,25 @@ VGG_API VGG_INLINE void vgg_svg_put_double(vgg_svg_writer *w, double d)
   vgg_svg_put_uint(w, (unsigned int)frac);
 }
 
-VGG_API VGG_INLINE void vgg_svg_start(vgg_svg_writer *w, double width, double height)
+VGG_API VGG_INLINE void vgg_svg_start(vgg_svg_writer *w, char *id, double width, double height)
 {
-  vgg_svg_puts(w, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"");
+  vgg_svg_puts(w, "<svg ");
+
+  /* ID field */
+  vgg_svg_puts(w, "id=\"");
+  vgg_svg_puts(w, id);
+  vgg_svg_puts(w, "\" ");
+
+  /* XMLNS */
+  vgg_svg_puts(w, "xmlns=\"http://www.w3.org/2000/svg\" ");
+
+  /* Width of svg */
+  vgg_svg_puts(w, "width=\"");
   vgg_svg_put_double(w, width);
-  vgg_svg_puts(w, "\" height=\"");
+  vgg_svg_puts(w, "\" ");
+
+  /* Height of svg */
+  vgg_svg_puts(w, "height=\"");
   vgg_svg_put_double(w, height);
   vgg_svg_puts(w, "\">\n");
 }
@@ -381,59 +446,83 @@ VGG_API VGG_INLINE void vgg_svg_end(vgg_svg_writer *w)
   vgg_svg_puts(w, "</svg>\n");
 }
 
-VGG_API VGG_INLINE void vgg_svg_add_rect(
+#define VGG_SVG_PUT_COLOR(w, color)               \
+  do                                              \
+  {                                               \
+    static const char hex[] = "0123456789ABCDEF"; \
+    char buf[6];                                  \
+    int i;                                        \
+    buf[0] = hex[(color.r >> 4) & 0xF];           \
+    buf[1] = hex[(color.r) & 0xF];                \
+    buf[2] = hex[(color.g >> 4) & 0xF];           \
+    buf[3] = hex[(color.g) & 0xF];                \
+    buf[4] = hex[(color.b >> 4) & 0xF];           \
+    buf[5] = hex[(color.b) & 0xF];                \
+    for (i = 0; i < 6; ++i)                       \
+    {                                             \
+      vgg_svg_putc((w), buf[i]);                  \
+    }                                             \
+  } while (0)
+
+VGG_API VGG_INLINE void vgg_svg_element_add(
     vgg_svg_writer *w,
-    unsigned int rect_id,
-    double x, double y, double width, double height,
-    vgg_color fill,
-    vgg_svg_data_field *data_fields,
-    int data_fields_count)
+    vgg_header *header)
 {
-  static const char hex[] = "0123456789ABCDEF";
-  int i;
-  char color[7];
+  unsigned int i;
 
-  color[0] = hex[(fill.r >> 4) & 0xF];
-  color[1] = hex[fill.r & 0xF];
-  color[2] = hex[(fill.g >> 4) & 0xF];
-  color[3] = hex[fill.g & 0xF];
-  color[4] = hex[(fill.b >> 4) & 0xF];
-  color[5] = hex[fill.b & 0xF];
-  color[6] = 0;
+  /* Open element tag */
+  vgg_svg_puts(w, "  <");
 
-  vgg_svg_puts(w, "<rect id=\"");
-  vgg_svg_put_uint(w, rect_id);
-  vgg_svg_puts(w, "\" x=\"");
-  vgg_svg_put_double(w, x);
-  vgg_svg_puts(w, "\" y=\"");
-  vgg_svg_put_double(w, y);
-  vgg_svg_puts(w, "\" width=\"");
-  vgg_svg_put_double(w, width);
-  vgg_svg_puts(w, "\" height=\"");
-  vgg_svg_put_double(w, height);
-  vgg_svg_puts(w, "\" fill=\"#");
-
-  for (i = 0; i < 6; ++i)
+  /* Rectangular Shape */
+  if (header->type == VGG_TYPE_RECT)
   {
-    vgg_svg_putc(w, color[i]);
-  }
-  vgg_svg_puts(w, "\"");
+    vgg_rect *rect = (vgg_rect *)header;
 
-  /* Add all data-* attributes */
-  for (i = 0; i < data_fields_count; ++i)
-  {
-    if (data_fields[i].key && data_fields[i].value &&
-        data_fields[i].key[0] && data_fields[i].value[0])
-    {
-      vgg_svg_puts(w, " data-");
-      vgg_svg_puts(w, data_fields[i].key);
-      vgg_svg_puts(w, "=\"");
-      vgg_svg_puts(w, data_fields[i].value);
-      vgg_svg_puts(w, "\"");
-    }
+    vgg_svg_puts(w, "rect ");
+
+    /* Rect x value */
+    vgg_svg_puts(w, "x=\"");
+    vgg_svg_put_double(w, rect->x);
+    vgg_svg_puts(w, "\" ");
+
+    /* Rect y value */
+    vgg_svg_puts(w, "y=\"");
+    vgg_svg_put_double(w, rect->y);
+    vgg_svg_puts(w, "\" ");
+
+    /* Rect width value */
+    vgg_svg_puts(w, "width=\"");
+    vgg_svg_put_double(w, rect->width);
+    vgg_svg_puts(w, "\" ");
+
+    /* Rect height value */
+    vgg_svg_puts(w, "height=\"");
+    vgg_svg_put_double(w, rect->height);
+    vgg_svg_puts(w, "\" ");
   }
 
-  vgg_svg_puts(w, " />\n");
+  /* ID field */
+  vgg_svg_puts(w, "id=\"");
+  vgg_svg_put_uint(w, header->id);
+  vgg_svg_puts(w, "\" ");
+
+  /* Fill color */
+  vgg_svg_puts(w, "fill=\"#");
+  VGG_SVG_PUT_COLOR(w, header->color_fill);
+  vgg_svg_puts(w, "\" ");
+
+  /* Data fields */
+  for (i = 0; i < header->data_fields_count; ++i)
+  {
+    vgg_svg_puts(w, "data-");
+    vgg_svg_puts(w, header->data_fields[i].key);
+    vgg_svg_puts(w, "=\"");
+    vgg_svg_puts(w, header->data_fields[i].value);
+    vgg_svg_puts(w, "\" ");
+  }
+
+  /* Closing element tag */
+  vgg_svg_puts(w, "/>\n");
 }
 
 #endif /* VGG_H */

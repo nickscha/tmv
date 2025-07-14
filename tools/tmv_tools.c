@@ -30,23 +30,23 @@ static void tmv_write_to_svg(char *filename, double area_width, double area_heig
   w.capacity = VGG_MAX_BUFFER_SIZE;
   w.length = 0;
 
-  vgg_svg_start(&w, area_width, area_height);
+  vgg_svg_start(&w, "tmvsvg", area_width, area_height);
 
   for (i = 0; i < rects_count; ++i)
   {
     tmv_treemap_rect rect = rects[i];
     tmv_treemap_item *item = tmv_find_item_by_id(items, items_count, rect.id);
-    vgg_color color = vgg_color_map_linear(item->weight, min_weight, max_weight, color_start, color_end);
 
-    vgg_svg_add_rect(
-        &w,
-        (unsigned int)rect.id,
-        rect.x,
-        rect.y,
-        rect.width,
-        rect.height,
-        color,
-        0, 0);
+    vgg_rect r = {0};
+    r.header.id = rect.id;
+    r.header.type = VGG_TYPE_RECT;
+    r.header.color_fill = vgg_color_map_linear(item->weight, min_weight, max_weight, color_start, color_end);
+    r.x = rect.x;
+    r.y = rect.y;
+    r.width = rect.width;
+    r.height = rect.height;
+
+    vgg_svg_element_add(&w, (vgg_header *)&r);
   }
 
   vgg_svg_end(&w);
@@ -68,7 +68,7 @@ static void tmv_to_svg_linear_weights(void)
 
   tmv_treemap_item items[TMV_LW_ITEMS];
 
-  int i;
+  unsigned int i;
 
   for (i = 0; i < TMV_LW_ITEMS; ++i)
   {
