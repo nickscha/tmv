@@ -429,6 +429,109 @@ TMV_API TMV_INLINE void tmv_binary_encode(
   *out_binary_size = TMV_BINARY_SIZE_HEADER + size_struct_area + size_struct_stats + size_struct_items + size_struct_rects;
 }
 
+TMV_API TMV_INLINE unsigned long tmv_binary_read_ul(unsigned char *ptr)
+{
+  return ((unsigned long)ptr[0]) |
+         ((unsigned long)ptr[1] << 8) |
+         ((unsigned long)ptr[2] << 16) |
+         ((unsigned long)ptr[3] << 24);
+}
+
+TMV_API TMV_INLINE void tmv_binary_decode(
+    unsigned char *in_binary,     /* Output buffer for executable */
+    unsigned long in_binary_size, /* Actual size of output binary buffer*/
+    tmv_rect *area,               /* The area on which the squarified treemap should be aligned */
+    tmv_item *items,              /* The descending by weight sorted treemap items*/
+    int *items_count,             /* The number of items */
+    int *items_user_data_size,    /* Size of user_data in bytes per item */
+    tmv_rect *rects,              /* The output rects that have been computed */
+    int *rects_count,             /* The output number of rects computed */
+    tmv_stats *stats              /* The output stats/metrics */
+)
+{
+  unsigned char *binary_ptr;
+
+  unsigned long size_struct_area;
+  unsigned long size_struct_stats;
+  unsigned long size_struct_items;
+  unsigned long size_struct_rects;
+
+  if (in_binary_size < TMV_BINARY_SIZE_HEADER)
+  {
+    /* no valid tmv binary */
+    return;
+  }
+
+  if (in_binary[0] != 'T' || in_binary[1] != 'M' || in_binary[2] != 'V' || in_binary[3] != '\0')
+  {
+    /* no right magic */
+    return;
+  }
+  if (in_binary[4] != TMV_BINARY_VERSION)
+  {
+    /* no right version */
+    return;
+  }
+
+  if (in_binary[5] != 0 || in_binary[6] != 0 || in_binary[7] != 0)
+  {
+    /* no right padding */
+    return;
+  }
+
+  binary_ptr = in_binary + (TMV_BINARY_SIZE_MAGIC + TMV_BINARY_SIZE_VERSION);
+
+  /* area size */
+  size_struct_area = tmv_binary_read_ul(binary_ptr);
+  binary_ptr += 4;
+
+  /* stats size */
+  size_struct_stats = tmv_binary_read_ul(binary_ptr);
+  binary_ptr += 4;
+
+  /* items size */
+  size_struct_items = tmv_binary_read_ul(binary_ptr);
+  binary_ptr += 4;
+
+  /* rects size */
+  size_struct_rects = tmv_binary_read_ul(binary_ptr);
+  binary_ptr += 4;
+
+  if (in_binary_size < TMV_BINARY_SIZE_HEADER + size_struct_area + size_struct_stats + size_struct_items + size_struct_rects)
+  {
+    /* no space for data */
+    return;
+  }
+
+  *items_count = (int)tmv_binary_read_ul(binary_ptr);
+  binary_ptr += 4;
+
+  *items_user_data_size = (int)tmv_binary_read_ul(binary_ptr);
+  binary_ptr += 4;
+
+  *rects_count = (int)tmv_binary_read_ul(binary_ptr);
+  binary_ptr += 4;
+
+  area = (tmv_rect *)binary_ptr;
+  binary_ptr += size_struct_area;
+
+  stats = (tmv_stats *)binary_ptr;
+  binary_ptr += size_struct_stats;
+
+  items = (tmv_item *)binary_ptr;
+  binary_ptr += size_struct_items;
+
+  rects = (tmv_rect *)binary_ptr;
+
+  (void)area;
+  (void)stats;
+  (void)items;
+  (void)items_count;
+  (void)items_user_data_size;
+  (void)rects;
+  (void)rects_count;
+}
+
 #endif /* TMV_H */
 
 /*
