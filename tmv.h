@@ -348,7 +348,7 @@ TMV_API TMV_INLINE void tmv_squarify(
 #define TMV_BINARY_SIZE_COUNTS 28
 #define TMV_BINARY_SIZE_HEADER (TMV_BINARY_SIZE_MAGIC + TMV_BINARY_SIZE_VERSION + TMV_BINARY_SIZE_COUNTS)
 
-TMV_API TMV_INLINE void *tmv_binary_memcpy(void *dest, void *src, unsigned int count)
+TMV_API TMV_INLINE void *tmv_binary_memcpy(void *dest, void *src, unsigned long count)
 {
   char *dest8 = (char *)dest;
   const char *src8 = (char *)src;
