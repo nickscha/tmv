@@ -339,6 +339,96 @@ TMV_API TMV_INLINE void tmv_squarify(
   }
 }
 
+/* ########################################################## */
+/* # Binary En-/Decoding of tmv data                          */
+/* ########################################################## */
+#define TMV_BINARY_SIZE_MAGIC 4
+#define TMV_BINARY_VERSION 1
+#define TMV_BINARY_SIZE_VERSION 4
+#define TMV_BINARY_SIZE_COUNTS 28
+#define TMV_BINARY_SIZE_HEADER (TMV_BINARY_SIZE_MAGIC + TMV_BINARY_SIZE_VERSION + TMV_BINARY_SIZE_COUNTS)
+
+TMV_API TMV_INLINE void *tmv_binary_memcpy(void *dest, void *src, unsigned int count)
+{
+  char *dest8 = (char *)dest;
+  const char *src8 = (char *)src;
+  while (count--)
+  {
+    *dest8++ = *src8++;
+  }
+
+  return dest;
+}
+
+TMV_API TMV_INLINE void tmv_binary_encode(
+    unsigned char *out_binary,         /* Output buffer for executable */
+    unsigned long out_binary_capacity, /* Capacity of output buffer */
+    unsigned long *out_binary_size,    /* Actual size of output binary buffer*/
+    tmv_rect area,                     /* The area on which the squarified treemap should be aligned */
+    tmv_item *items,                   /* The descending by weight sorted treemap items*/
+    int items_count,                   /* The number of items */
+    int items_user_data_size,          /* Size of user_data in bytes per item */
+    tmv_rect *rects,                   /* The output rects that have been computed */
+    int *rects_count,                  /* The output number of rects computed */
+    tmv_stats *stats                   /* The output stats/metrics */
+)
+{
+  unsigned char *ptr = out_binary;
+  unsigned char *end = out_binary + out_binary_capacity;
+
+  unsigned long size_struct_area = sizeof(area);
+  unsigned long size_struct_stats = sizeof(*stats);
+  unsigned long size_struct_items = (unsigned long)tmv_total_items(items, items_count) * ((unsigned long)sizeof(*items) + (unsigned long)items_user_data_size);
+  unsigned long size_struct_rects = (unsigned long)*rects_count * (unsigned long)sizeof(*rects);
+
+  if (end - ptr < 5)
+  {
+    return;
+  }
+
+  /* 4 byte magic */
+  ptr[0] = 'T';
+  ptr[1] = 'M';
+  ptr[2] = 'V';
+  ptr[3] = '\0';
+
+  /* 1 byte version + 3 byte padding */
+  ptr[4] = TMV_BINARY_VERSION;
+  ptr[5] = 0;
+  ptr[6] = 0;
+  ptr[7] = 0;
+
+  ptr += TMV_BINARY_SIZE_MAGIC + TMV_BINARY_SIZE_VERSION;
+
+  /* 28 bytes count and struct metrics */
+  tmv_binary_memcpy(ptr, &size_struct_area, 4);
+  ptr += 4;
+  tmv_binary_memcpy(ptr, &size_struct_stats, 4);
+  ptr += 4;
+  tmv_binary_memcpy(ptr, &size_struct_items, 4);
+  ptr += 4;
+  tmv_binary_memcpy(ptr, &size_struct_rects, 4);
+  ptr += 4;
+  tmv_binary_memcpy(ptr, &items_count, 4);
+  ptr += 4;
+  tmv_binary_memcpy(ptr, &items_user_data_size, 4);
+  ptr += 4;
+  tmv_binary_memcpy(ptr, rects_count, 4);
+  ptr += 4;
+
+  /* Write the tmv data */
+  tmv_binary_memcpy(ptr, &area, size_struct_area);
+  ptr += size_struct_area;
+  tmv_binary_memcpy(ptr, stats, size_struct_stats);
+  ptr += size_struct_stats;
+  tmv_binary_memcpy(ptr, items, size_struct_items);
+  ptr += size_struct_items;
+  tmv_binary_memcpy(ptr, rects, size_struct_rects);
+  ptr += size_struct_rects;
+
+  *out_binary_size = TMV_BINARY_SIZE_HEADER + size_struct_area + size_struct_stats + size_struct_items + size_struct_rects;
+}
+
 #endif /* TMV_H */
 
 /*

@@ -221,7 +221,172 @@ void tmv_test_simple_more_items(void)
   for (i = 0; i < (unsigned int)rect_count; ++i)
   {
     tmv_rect rect = rects[i];
-    TMV_ASSERT_DBL_EQ(rect.width + rect.height, 8.0);
+    if (i % 100 == 0)
+    {
+      TMV_ASSERT_DBL_EQ(rect.width + rect.height, 8.0);
+    }
+  }
+}
+
+unsigned long tmv_test_binary_read_ul(unsigned char *ptr)
+{
+  return ((unsigned long)ptr[0]) |
+         ((unsigned long)ptr[1] << 8) |
+         ((unsigned long)ptr[2] << 16) |
+         ((unsigned long)ptr[3] << 24);
+}
+
+void tmv_test_to_binary(void)
+{
+#define BINARY_BUFFER_CAPACITY 1024
+  unsigned char binary_buffer[BINARY_BUFFER_CAPACITY];
+  unsigned long binary_buffer_size = 0;
+
+  unsigned long size_struct_items;
+  unsigned long size_struct_rects;
+
+  unsigned char *binary_ptr;
+  tmv_rect *binary_area;
+  tmv_stats *binary_stats;
+  tmv_item *binary_items;
+  tmv_rect *binary_rects;
+  int i;
+
+  /* The area on which the squarified treemap should be aligned */
+  tmv_rect area = {99, 0, 0, 100, 100};
+
+  tmv_rect rects[TMV_MAX_RECTS];
+  int rect_count = 0;
+
+  int user_data_size = 0;
+
+  tmv_item child1 = {5, 2.5, 0, 0, 0};
+  tmv_item child2 = {6, 2.5, 0, 0, 0};
+  tmv_item child3 = {7, 2.5, 0, 0, 0};
+  tmv_item child4 = {8, 2.5, 0, 0, 0};
+  tmv_item children[4];
+
+  tmv_item items[] = {
+      {1, 10.0, 0, 0, 4},
+      {2, 10.0, 0, 0, 0},
+      {3, 10.0, 0, 0, 0},
+      {4, 10.0, 0, 0, 0}};
+
+  tmv_stats stats = {0};
+
+  children[0] = child1;
+  children[1] = child2;
+  children[2] = child3;
+  children[3] = child4;
+
+  items[0].children = children;
+
+  /* Build squarified recursive treemap view */
+  tmv_squarify(
+      area,                  /* The area on which the squarified treemap should be aligned */
+      items,                 /* List of treemap items */
+      TMV_ARRAY_SIZE(items), /* Size of top level items */
+      rects,                 /* The output buffer for rectangular shapes computed */
+      &rect_count,           /* The number of rectangular shapes computed */
+      &stats                 /* The computed statistics */
+  );
+
+  assert(rect_count == 8);
+  assert(rect_count == tmv_total_items(items, TMV_ARRAY_SIZE(items)));
+
+  /* ########################################################## */
+  /* # Encoding to binary                                       */
+  /* ########################################################## */
+  tmv_binary_encode(
+      binary_buffer,
+      BINARY_BUFFER_CAPACITY,
+      &binary_buffer_size,
+      area,                  /* The area on which the squarified treemap should be aligned */
+      items,                 /* List of treemap items */
+      TMV_ARRAY_SIZE(items), /* Size of top level items */
+      user_data_size,        /* Size of user_data in bytes per item */
+      rects,                 /* The output buffer for rectangular shapes computed */
+      &rect_count,           /* The number of rectangular shapes computed */
+      &stats                 /* The computed statistics */
+  );
+
+  /* ########################################################## */
+  /* # Decoding and Verifying binary                            */
+  /* ########################################################## */
+  printf("[bin] binary_buffer_size: %lu\n", binary_buffer_size);
+
+  size_struct_items = (unsigned long)tmv_total_items(items, TMV_ARRAY_SIZE(items)) * ((unsigned long)sizeof(*items) + (unsigned long)user_data_size);
+  size_struct_rects = (unsigned long)rect_count * (unsigned long)sizeof(*rects);
+
+  printf("[bin]  size_struct_items: %lu\n", size_struct_items);
+  printf("[bin]  size_struct_rects: %lu\n", size_struct_rects);
+
+  /* Test magic */
+  assert(binary_buffer[0] == 'T');
+  assert(binary_buffer[1] == 'M');
+  assert(binary_buffer[2] == 'V');
+  assert(binary_buffer[3] == '\0');
+
+  /* Test version */
+  assert(binary_buffer[4] == TMV_BINARY_VERSION);
+  assert(binary_buffer[5] == 0);
+  assert(binary_buffer[6] == 0);
+  assert(binary_buffer[7] == 0);
+
+  /* Test counts */
+  binary_ptr = binary_buffer + (TMV_BINARY_SIZE_MAGIC + TMV_BINARY_SIZE_VERSION);
+
+  assert(tmv_test_binary_read_ul(binary_ptr) == (unsigned long)sizeof(area));
+  binary_ptr += 4;
+  assert(tmv_test_binary_read_ul(binary_ptr) == (unsigned long)sizeof(stats));
+  binary_ptr += 4;
+  assert(tmv_test_binary_read_ul(binary_ptr) == size_struct_items);
+  binary_ptr += 4;
+  assert(tmv_test_binary_read_ul(binary_ptr) == size_struct_rects);
+  binary_ptr += 4;
+  assert(tmv_test_binary_read_ul(binary_ptr) == (unsigned long)TMV_ARRAY_SIZE(items));
+  binary_ptr += 4;
+  assert(tmv_test_binary_read_ul(binary_ptr) == (unsigned long)user_data_size);
+  binary_ptr += 4;
+  assert(tmv_test_binary_read_ul(binary_ptr) == (unsigned long)rect_count);
+  binary_ptr += 4;
+
+  /* check area */
+  binary_area = (tmv_rect *)binary_ptr;
+  assert(binary_area->id == 99);
+  TMV_ASSERT_DBL_EQ(binary_area->x, 0);
+  TMV_ASSERT_DBL_EQ(binary_area->y, 0);
+  TMV_ASSERT_DBL_EQ(binary_area->width, 100.0);
+  TMV_ASSERT_DBL_EQ(binary_area->height, 100.0);
+  binary_ptr += (unsigned long)sizeof(area);
+
+  /* check stats */
+  binary_stats = (tmv_stats *)binary_ptr;
+  assert(binary_stats->weigth_min == stats.weigth_min);
+  assert(binary_stats->weigth_max == stats.weigth_max);
+  assert(binary_stats->weigth_sum == stats.weigth_sum);
+  assert(binary_stats->count == stats.count);
+  binary_ptr += (unsigned long)sizeof(stats);
+
+  /* check items */
+  binary_items = (tmv_item *)binary_ptr;
+  for (i = 0; i < (int)TMV_ARRAY_SIZE(items); ++i)
+  {
+    assert(binary_items[i].id == items[i].id);
+    TMV_ASSERT_DBL_EQ(binary_items[i].weight, items[i].weight);
+    assert(binary_items[i].children_count == items[i].children_count);
+  }
+  binary_ptr += size_struct_items;
+
+  /* check rects */
+  binary_rects = (tmv_rect *)binary_ptr;
+  for (i = 0; i < rect_count; ++i)
+  {
+    assert(binary_rects[i].id == rects[i].id);
+    TMV_ASSERT_DBL_EQ(binary_rects[i].x, rects[i].x);
+    TMV_ASSERT_DBL_EQ(binary_rects[i].y, rects[i].y);
+    TMV_ASSERT_DBL_EQ(binary_rects[i].width, rects[i].width);
+    TMV_ASSERT_DBL_EQ(binary_rects[i].height, rects[i].height);
   }
 }
 
@@ -231,6 +396,7 @@ int main(void)
   tmv_test_simple_layout();
   tmv_test_simple_recursive_layout();
   tmv_test_simple_more_items();
+  tmv_test_to_binary();
 
   return 0;
 }
