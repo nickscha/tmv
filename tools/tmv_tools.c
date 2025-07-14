@@ -20,7 +20,7 @@ static vgg_color color_end = {255, 85, 0};      /*  End (dark orange): 255,  85,
 #define TMV_MAX_RECTS 2048
 #define VGG_MAX_BUFFER_SIZE 65536 /* SVG Buffer Size */
 
-static void tmv_write_to_svg(char *filename, double area_width, double area_height, tmv_treemap_rect *rects, int rects_count, tmv_treemap_item *items, int items_count, double min_weight, double max_weight)
+static void tmv_write_to_svg(char *filename, double area_width, double area_height, tmv_rect *rects, int rects_count, tmv_item *items, int items_count, double min_weight, double max_weight)
 {
   int i;
   unsigned char vgg_buffer[VGG_MAX_BUFFER_SIZE];
@@ -34,8 +34,8 @@ static void tmv_write_to_svg(char *filename, double area_width, double area_heig
 
   for (i = 0; i < rects_count; ++i)
   {
-    tmv_treemap_rect rect = rects[i];
-    tmv_treemap_item *item = tmv_find_item_by_id(items, items_count, rect.id);
+    tmv_rect rect = rects[i];
+    tmv_item *item = tmv_find_item_by_id(items, items_count, rect.id);
 
     vgg_rect r = {0};
     r.header.id = rect.id;
@@ -63,16 +63,16 @@ static void tmv_to_svg_linear_weights(void)
   tmv_stats stats = {0};
 
   /* Define a output buffer for output rects */
-  tmv_treemap_rect rects[TMV_MAX_RECTS];
+  tmv_rect rects[TMV_MAX_RECTS];
   int rect_count = 0;
 
-  tmv_treemap_item items[TMV_LW_ITEMS];
+  tmv_item items[TMV_LW_ITEMS];
 
   unsigned int i;
 
   for (i = 0; i < TMV_LW_ITEMS; ++i)
   {
-    tmv_treemap_item item = {0};
+    tmv_item item = {0};
     item.id = i;
     item.weight = TMV_LW_ITEMS - i;
     items[i] = item;
@@ -101,22 +101,22 @@ static void tmv_to_svg_nested(void)
   tmv_stats stats = {0};
 
   /* Define a output buffer for output rects */
-  tmv_treemap_rect rects[TMV_MAX_RECTS];
+  tmv_rect rects[TMV_MAX_RECTS];
   int rect_count = 0;
 
-  tmv_treemap_item child1 = {5, 2.5, 0, 0, 0};
-  tmv_treemap_item child2 = {6, 2.5, 0, 0, 0};
-  tmv_treemap_item child3 = {7, 2.5, 0, 0, 0};
-  tmv_treemap_item child4 = {8, 2.5, 0, 0, 0};
-  tmv_treemap_item children_linear[4];
+  tmv_item child1 = {5, 2.5, 0, 0, 0};
+  tmv_item child2 = {6, 2.5, 0, 0, 0};
+  tmv_item child3 = {7, 2.5, 0, 0, 0};
+  tmv_item child4 = {8, 2.5, 0, 0, 0};
+  tmv_item children_linear[4];
 
-  tmv_treemap_item child5 = {9, 5.0, 0, 0, 0};
-  tmv_treemap_item child6 = {10, 2.5, 0, 0, 0};
-  tmv_treemap_item child7 = {11, 1.25, 0, 0, 0};
-  tmv_treemap_item child8 = {12, 1.25, 0, 0, 0};
-  tmv_treemap_item children_weighted[4];
+  tmv_item child5 = {9, 5.0, 0, 0, 0};
+  tmv_item child6 = {10, 2.5, 0, 0, 0};
+  tmv_item child7 = {11, 1.25, 0, 0, 0};
+  tmv_item child8 = {12, 1.25, 0, 0, 0};
+  tmv_item children_weighted[4];
 
-  tmv_treemap_item items[] = {
+  tmv_item items[] = {
       {1, 20.0, 0, 0, 0},
       {2, 10.0, 0, 0, 0},
       {3, 5.0, 0, 0, 0},

@@ -22,22 +22,22 @@ TMV_API TMV_INLINE double tmv_fabs(double x)
 #define TMV_MAX_RECTS 1024
 #define TMV_ASSERT_DBL_EQ(a, b) assert(tmv_fabs((a) - (b)) < 1e-6)
 
-void tmv_test_print_rects(tmv_treemap_rect *rects, int rect_count)
+void tmv_test_print_rects(tmv_rect *rects, int rect_count)
 {
   int i;
   for (i = 0; i < rect_count; ++i)
   {
-    tmv_treemap_rect rect = rects[i];
+    tmv_rect rect = rects[i];
     printf("id: %5i, x: %5.2f, y: %5.2f, w: %5.2f, h: %5.2f\n", rect.id, rect.x, rect.y, rect.width, rect.height);
   }
 }
 
 void tmv_test_simple_sort(void)
 {
-  tmv_treemap_rect rects[TMV_MAX_RECTS];
+  tmv_rect rects[TMV_MAX_RECTS];
   int rect_count = 0;
 
-  tmv_treemap_item items[] = {
+  tmv_item items[] = {
       {1, 10.0, 0, 0, 0},
       {2, 3.0, 0, 0, 0},
       {3, 20.0, 0, 0, 0},
@@ -67,7 +67,7 @@ void tmv_test_simple_sort(void)
 
 void tmv_test_simple_layout(void)
 {
-  tmv_treemap_rect rects[TMV_MAX_RECTS];
+  tmv_rect rects[TMV_MAX_RECTS];
   int rect_count = 0;
 
   /*
@@ -79,7 +79,7 @@ void tmv_test_simple_layout(void)
      id: 4, x: 50, y: 50, width: 50, height: 50
 
   */
-  tmv_treemap_item items[] = {
+  tmv_item items[] = {
       {1, 10.0, 0, 0, 0},
       {2, 10.0, 0, 0, 0},
       {3, 10.0, 0, 0, 0},
@@ -102,10 +102,10 @@ void tmv_test_simple_layout(void)
 
 void tmv_test_simple_recursive_layout(void)
 {
-  tmv_treemap_item *found;
+  tmv_item *found;
 
   /* Define a output buffer for output rects */
-  tmv_treemap_rect rects[TMV_MAX_RECTS];
+  tmv_rect rects[TMV_MAX_RECTS];
   int rect_count = 0;
 
   /*
@@ -120,13 +120,13 @@ void tmv_test_simple_recursive_layout(void)
    id: 7, x: 25, y:  0, width: 25, height: 25  <- child3
    id: 8, x: 25, y: 25, width: 25, height: 25  <- child4
   */
-  tmv_treemap_item child1 = {5, 2.5, 0, 0, 0};
-  tmv_treemap_item child2 = {6, 2.5, 0, 0, 0};
-  tmv_treemap_item child3 = {7, 2.5, 0, 0, 0};
-  tmv_treemap_item child4 = {8, 2.5, 0, 0, 0};
-  tmv_treemap_item children[4];
+  tmv_item child1 = {5, 2.5, 0, 0, 0};
+  tmv_item child2 = {6, 2.5, 0, 0, 0};
+  tmv_item child3 = {7, 2.5, 0, 0, 0};
+  tmv_item child4 = {8, 2.5, 0, 0, 0};
+  tmv_item children[4];
 
-  tmv_treemap_item items[] = {
+  tmv_item items[] = {
       {1, 10.0, 0, 0, 4},
       {2, 10.0, 0, 0, 0},
       {3, 10.0, 0, 0, 0},
@@ -177,11 +177,11 @@ void tmv_test_simple_recursive_layout(void)
 void tmv_test_simple_more_items(void)
 {
   /* Define a output buffer for output rects */
-  tmv_treemap_rect rects[TMV_MAX_RECTS];
+  tmv_rect rects[TMV_MAX_RECTS];
   int rect_count = 0;
 
 #define TMVTSMI_ITEMS 625 /* 25*25 equal weighted items on a 100x100 grid */
-  tmv_treemap_item items[TMVTSMI_ITEMS];
+  tmv_item items[TMVTSMI_ITEMS];
 
   tmv_stats stats = {0};
 
@@ -189,7 +189,7 @@ void tmv_test_simple_more_items(void)
 
   for (i = 0; i < TMVTSMI_ITEMS; ++i)
   {
-    tmv_treemap_item item = {0};
+    tmv_item item = {0};
     item.id = i;
     item.weight = 1.0;
     items[i] = item;
@@ -210,7 +210,7 @@ void tmv_test_simple_more_items(void)
 
   for (i = 0; i < (unsigned int)rect_count; ++i)
   {
-    tmv_treemap_rect rect = rects[i];
+    tmv_rect rect = rects[i];
     TMV_ASSERT_DBL_EQ(rect.width + rect.height, 8.0);
   }
 }

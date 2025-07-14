@@ -32,7 +32,7 @@ LICENSE
 
 #define TMV_ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-typedef struct tmv_treemap_item
+typedef struct tmv_item
 {
   unsigned int id;
   double weight;
@@ -40,12 +40,12 @@ typedef struct tmv_treemap_item
   void *user_data;
 
   /* Hierarchy */
-  struct tmv_treemap_item *children;
+  struct tmv_item *children;
   int children_count;
 
-} tmv_treemap_item;
+} tmv_item;
 
-typedef struct tmv_treemap_rect
+typedef struct tmv_rect
 {
   unsigned int id;
   double x;
@@ -53,7 +53,7 @@ typedef struct tmv_treemap_rect
   double width;
   double height;
 
-} tmv_treemap_rect;
+} tmv_rect;
 
 typedef struct tmv_stats
 {
@@ -64,7 +64,7 @@ typedef struct tmv_stats
 
 } tmv_stats;
 
-TMV_API TMV_INLINE int tmv_total_items(tmv_treemap_item *items, int items_count)
+TMV_API TMV_INLINE int tmv_total_items(tmv_item *items, int items_count)
 {
   int total = 0;
   int i;
@@ -82,7 +82,7 @@ TMV_API TMV_INLINE int tmv_total_items(tmv_treemap_item *items, int items_count)
   return total;
 }
 
-TMV_API TMV_INLINE tmv_treemap_item *tmv_find_item_by_id(tmv_treemap_item *items, int count, unsigned int id)
+TMV_API TMV_INLINE tmv_item *tmv_find_item_by_id(tmv_item *items, int count, unsigned int id)
 {
   int i;
   for (i = 0; i < count; ++i)
@@ -94,7 +94,7 @@ TMV_API TMV_INLINE tmv_treemap_item *tmv_find_item_by_id(tmv_treemap_item *items
 
     if (items[i].children && items[i].children_count > 0)
     {
-      tmv_treemap_item *found = tmv_find_item_by_id(items[i].children, items[i].children_count, id);
+      tmv_item *found = tmv_find_item_by_id(items[i].children, items[i].children_count, id);
       if (found != 0)
       {
         return found;
@@ -105,12 +105,12 @@ TMV_API TMV_INLINE tmv_treemap_item *tmv_find_item_by_id(tmv_treemap_item *items
   return 0;
 }
 
-TMV_API TMV_INLINE void tmv_insertion_sort_stable_desc(tmv_treemap_item *items, int count)
+TMV_API TMV_INLINE void tmv_insertion_sort_stable_desc(tmv_item *items, int count)
 {
   int i, j;
   for (i = 1; i < count; ++i)
   {
-    tmv_treemap_item key = items[i];
+    tmv_item key = items[i];
     j = i - 1;
 
     /* Move elements with weight < key.weight one position forward */
@@ -123,7 +123,7 @@ TMV_API TMV_INLINE void tmv_insertion_sort_stable_desc(tmv_treemap_item *items, 
   }
 }
 
-TMV_API TMV_INLINE double tmv_total_weight(tmv_treemap_item *items, int count)
+TMV_API TMV_INLINE double tmv_total_weight(tmv_item *items, int count)
 {
   double sum = 0.0;
   int i;
@@ -135,13 +135,13 @@ TMV_API TMV_INLINE double tmv_total_weight(tmv_treemap_item *items, int count)
 }
 
 TMV_API TMV_INLINE void tmv_layout_row(
-    tmv_treemap_item *row_items,
+    tmv_item *row_items,
     int row_count,
     double x,
     double y,
     double width,
     double height,
-    tmv_treemap_rect *rects,
+    tmv_rect *rects,
     int *rects_count,
     tmv_stats *stats)
 {
@@ -203,15 +203,15 @@ TMV_API TMV_INLINE void tmv_layout_row(
 }
 
 TMV_API TMV_INLINE void tmv_squarify_current(
-    tmv_treemap_item *items, /* The descending by weight sorted treemap items*/
-    int items_count,         /* The number of items */
-    double x,                /* x */
-    double y,                /* y */
-    double width,            /* The width for the treemap */
-    double height,           /* The height for the treemap */
-    tmv_treemap_rect *rects, /* The output rects that have been computed */
-    int *rects_count,        /* The number of output rects computed */
-    tmv_stats *stats         /* The output stats/metrics */
+    tmv_item *items,  /* The descending by weight sorted treemap items*/
+    int items_count,  /* The number of items */
+    double x,         /* x */
+    double y,         /* y */
+    double width,     /* The width for the treemap */
+    double height,    /* The height for the treemap */
+    tmv_rect *rects,  /* The output rects that have been computed */
+    int *rects_count, /* The number of output rects computed */
+    tmv_stats *stats  /* The output stats/metrics */
 )
 {
   int start = 0;
@@ -300,15 +300,15 @@ TMV_API TMV_INLINE void tmv_squarify_current(
 }
 
 TMV_API TMV_INLINE void tmv_squarify(
-    tmv_treemap_item *items, /* The descending by weight sorted treemap items*/
-    int items_count,         /* The number of items */
-    double x,                /* x */
-    double y,                /* y */
-    double width,            /* The width for the treemap */
-    double height,           /* The height for the treemap */
-    tmv_treemap_rect *rects, /* The output rects that have been computed */
-    int *rects_count,        /* The output number of rects computed */
-    tmv_stats *stats         /* The output stats/metrics */
+    tmv_item *items,  /* The descending by weight sorted treemap items*/
+    int items_count,  /* The number of items */
+    double x,         /* x */
+    double y,         /* y */
+    double width,     /* The width for the treemap */
+    double height,    /* The height for the treemap */
+    tmv_rect *rects,  /* The output rects that have been computed */
+    int *rects_count, /* The output number of rects computed */
+    tmv_stats *stats  /* The output stats/metrics */
 )
 {
   int i;
@@ -325,11 +325,11 @@ TMV_API TMV_INLINE void tmv_squarify(
   /* For each item, recurse into children if any */
   for (i = *rects_count - items_count, j = 0; j < items_count; ++j, ++i)
   {
-    tmv_treemap_item *item = &items[j];
+    tmv_item *item = &items[j];
 
     if (item->children_count > 0)
     {
-      tmv_treemap_rect *parent_rect = &rects[i];
+      tmv_rect *parent_rect = &rects[i];
 
       tmv_squarify(
           item->children,
