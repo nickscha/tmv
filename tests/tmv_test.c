@@ -293,8 +293,6 @@ void tmv_test_to_binary(void)
       area /* The area on which the squarified treemap should be aligned */
   );
 
-  printf("stop after\n");
-
   assert(model.rects_count == 8);
   assert(model.rects_count == tmv_total_items(model.items, model.items_count));
 
