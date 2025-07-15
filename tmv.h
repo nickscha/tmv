@@ -371,6 +371,53 @@ TMV_API TMV_INLINE void *tmv_binary_memcpy(void *dest, void *src, unsigned long 
   return dest;
 }
 
+/* Calculates the total size of the tmv_item struct data with its recursive level of children */
+TMV_API TMV_INLINE unsigned long tmv_binary_items_size(tmv_item *item, unsigned long items_user_data_size)
+{
+  unsigned long size = 0;
+  unsigned long i;
+
+  size += sizeof(unsigned long); /* id */
+  size += sizeof(double);        /* weight */
+  size += sizeof(unsigned long); /* children_count */
+  size += items_user_data_size;  /* user_data_size */
+
+  for (i = 0; i < item->children_count; ++i)
+  {
+    size += tmv_binary_items_size(&item->children[i], items_user_data_size);
+  }
+
+  return size;
+}
+
+/* Flattens the tmv_item struct data with its recursive level of children */
+TMV_API TMV_INLINE char *tmv_binary_encode_item(unsigned char *out_binary, tmv_item *item, unsigned long items_user_data_size)
+{
+  unsigned long i;
+
+  *(unsigned long *)out_binary = item->id;
+  out_binary += sizeof(unsigned long *);
+
+  *(double *)out_binary = item->weight;
+  out_binary += sizeof(double);
+
+  *(unsigned long *)out_binary = item->children_count;
+  out_binary += sizeof(unsigned long);
+
+  /* Copy user_data */
+  for (i = 0; i < items_user_data_size; ++i)
+  {
+    *out_binary++ = ((unsigned char *)item->user_data)[i];
+  }
+
+  for (i = 0; i < item->children_count; ++i)
+  {
+    out_binary = tmv_binary_encode_item(out_binary, &item->children[i], items_user_data_size);
+  }
+
+  return out_binary;
+}
+
 TMV_API TMV_INLINE void tmv_binary_encode(
     unsigned char *out_binary,         /* Output buffer for executable */
     unsigned long out_binary_capacity, /* Capacity of output buffer */
