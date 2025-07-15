@@ -345,6 +345,7 @@ TMV_API TMV_INLINE void tmv_squarify(
 
       /* Update parent's rect count with value from child */
       model->rects_count = child_model.rects_count;
+      model->stats = child_model.stats;
     }
   }
 }
