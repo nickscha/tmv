@@ -34,20 +34,23 @@ LICENSE
 
 typedef struct tmv_item
 {
-  unsigned int id;
+  unsigned long id;
+
   double weight;
 
+  /* Additional user data */
   void *user_data;
 
   /* Hierarchy */
   struct tmv_item *children;
-  int children_count;
+  unsigned long children_count;
 
 } tmv_item;
 
 typedef struct tmv_rect
 {
-  unsigned int id;
+  unsigned long id;
+
   double x;
   double y;
   double width;
@@ -60,14 +63,25 @@ typedef struct tmv_stats
   double weigth_min;
   double weigth_max;
   double weigth_sum;
-  long count;
+  unsigned long count;
 
 } tmv_stats;
 
-TMV_API TMV_INLINE int tmv_total_items(tmv_item *items, int items_count)
+typedef struct tmv_model
 {
-  int total = 0;
-  int i;
+  tmv_stats stats;                    /* The calculated stats and metrics  */
+  unsigned long items_count;          /* The number of items */
+  unsigned long items_user_data_size; /* The user_data size per item */
+  unsigned long rects_count;          /* The output rects that have been computed */
+  tmv_item *items;                    /* The descending by weight sorted treemap items*/
+  tmv_rect *rects;                    /* The output rects that have been computed */
+
+} tmv_model;
+
+TMV_API TMV_INLINE unsigned long tmv_total_items(tmv_item *items, unsigned long items_count)
+{
+  unsigned long total = 0;
+  unsigned long i;
 
   for (i = 0; i < items_count; ++i)
   {
@@ -82,9 +96,20 @@ TMV_API TMV_INLINE int tmv_total_items(tmv_item *items, int items_count)
   return total;
 }
 
-TMV_API TMV_INLINE tmv_item *tmv_find_item_by_id(tmv_item *items, int count, unsigned int id)
+TMV_API TMV_INLINE double tmv_total_weight(tmv_item *items, unsigned long count)
 {
-  int i;
+  double sum = 0.0;
+  unsigned long i;
+  for (i = 0; i < count; ++i)
+  {
+    sum += items[i].weight;
+  }
+  return sum;
+}
+
+TMV_API TMV_INLINE tmv_item *tmv_find_item_by_id(tmv_item *items, unsigned long count, unsigned long id)
+{
+  unsigned long i;
   for (i = 0; i < count; ++i)
   {
     if (items[i].id == id)
@@ -105,13 +130,14 @@ TMV_API TMV_INLINE tmv_item *tmv_find_item_by_id(tmv_item *items, int count, uns
   return 0;
 }
 
-TMV_API TMV_INLINE void tmv_insertion_sort_stable_desc(tmv_item *items, int count)
+TMV_API TMV_INLINE void tmv_insertion_sort_stable_desc(tmv_item *items, unsigned long count)
 {
-  int i, j;
+  unsigned long i;
+  long j;
   for (i = 1; i < count; ++i)
   {
     tmv_item key = items[i];
-    j = i - 1;
+    j = (long)(i - 1);
 
     /* Move elements with weight < key.weight one position forward */
     while (j >= 0 && items[j].weight < key.weight)
@@ -123,26 +149,13 @@ TMV_API TMV_INLINE void tmv_insertion_sort_stable_desc(tmv_item *items, int coun
   }
 }
 
-TMV_API TMV_INLINE double tmv_total_weight(tmv_item *items, int count)
-{
-  double sum = 0.0;
-  int i;
-  for (i = 0; i < count; ++i)
-  {
-    sum += items[i].weight;
-  }
-  return sum;
-}
-
 TMV_API TMV_INLINE void tmv_layout_row(
+    tmv_model *model,
     tmv_rect row_area,
     tmv_item *row_items,
-    int row_count,
-    tmv_rect *rects,
-    int *rects_count,
-    tmv_stats *stats)
+    unsigned long row_count)
 {
-  int i;
+  unsigned long i;
   double area = row_area.width * row_area.height;
   double total_weight = tmv_total_weight(row_items, row_count);
   double scale = (total_weight > 0.0) ? (area / total_weight) : 0.0;
@@ -155,80 +168,78 @@ TMV_API TMV_INLINE void tmv_layout_row(
     double item_area = row_items[i].weight * scale;
     double w, h;
 
-    if (row_items[i].children_count == 0 && stats != 0)
+    /* Collect statistics */
+    if (row_items[i].children_count == 0)
     {
       double w = row_items[i].weight;
 
-      if (stats->weigth_min < 0.0 || w < stats->weigth_min)
+      if (model->stats.weigth_min < 0.0 || w < model->stats.weigth_min)
       {
-        stats->weigth_min = w;
+        model->stats.weigth_min = w;
       }
 
-      if (stats->weigth_max < 0.0 || w > stats->weigth_max)
+      if (model->stats.weigth_max < 0.0 || w > model->stats.weigth_max)
       {
-        stats->weigth_max = w;
+        model->stats.weigth_max = w;
       }
 
-      stats->weigth_sum += w;
-      stats->count += 1;
+      model->stats.weigth_sum += w;
+      model->stats.count += 1;
     }
 
+    /* Add rects */
     if (horizontal)
     {
       w = item_area / row_area.height;
       h = row_area.height;
-      rects[*rects_count].x = row_area.x + offset;
-      rects[*rects_count].y = row_area.y;
-      rects[*rects_count].width = w;
-      rects[*rects_count].height = h;
+      model->rects[model->rects_count].x = row_area.x + offset;
+      model->rects[model->rects_count].y = row_area.y;
+      model->rects[model->rects_count].width = w;
+      model->rects[model->rects_count].height = h;
       offset += w;
     }
     else
     {
       w = row_area.width;
       h = item_area / row_area.width;
-      rects[*rects_count].x = row_area.x;
-      rects[*rects_count].y = row_area.y + offset;
-      rects[*rects_count].width = w;
-      rects[*rects_count].height = h;
+      model->rects[model->rects_count].x = row_area.x;
+      model->rects[model->rects_count].y = row_area.y + offset;
+      model->rects[model->rects_count].width = w;
+      model->rects[model->rects_count].height = h;
       offset += h;
     }
 
-    rects[*rects_count].id = row_items[i].id;
-    (*rects_count)++;
+    model->rects[model->rects_count].id = row_items[i].id;
+    model->rects_count++;
   }
 }
 
 TMV_API TMV_INLINE void tmv_squarify_current(
-    tmv_rect render_area, /* The area on which the squarified treemap should be aligned */
-    tmv_item *items,      /* The descending by weight sorted treemap items*/
-    int items_count,      /* The number of items */
-    tmv_rect *rects,      /* The output rects that have been computed */
-    int *rects_count,     /* The number of output rects computed */
-    tmv_stats *stats      /* The output stats/metrics */
+    tmv_model *model,
+    tmv_rect render_area /* The area on which the squarified treemap should be aligned */
 )
 {
-  int start = 0;
-  double total_weight = tmv_total_weight(items, items_count);
+  unsigned long start = 0;
+  double total_weight = tmv_total_weight(model->items, model->items_count);
   double area = render_area.width * render_area.height;
   double scale = (total_weight > 0.0) ? (area / total_weight) : 0.0;
 
-  tmv_insertion_sort_stable_desc(items, items_count);
+  tmv_insertion_sort_stable_desc(model->items, model->items_count);
 
-  while (start < items_count)
+  while (start < model->items_count)
   {
-    int end = start;
+    unsigned long end = start;
     double row_weight = 0.0;
     double worst = 1e9;
-    int i;
+    unsigned long i;
 
     double side = (render_area.width >= render_area.height) ? render_area.height : render_area.width;
 
     double row_length;
-    int row_count;
+    unsigned long row_count;
 
     /* Try to add items[start..end] */
-    while (end < items_count)
+    while (end < model->items_count)
     {
       double max_w = -1e9;
       double min_w = 1e9;
@@ -239,12 +250,12 @@ TMV_API TMV_INLINE void tmv_squarify_current(
       double r2;
       double new_worst;
 
-      row_weight += items[end].weight;
+      row_weight += model->items[end].weight;
 
       /* Compute scaled weights and track min/max */
       for (i = start; i <= end; ++i)
       {
-        w_scaled = items[i].weight * scale;
+        w_scaled = model->items[i].weight * scale;
         if (w_scaled > max_w)
         {
           max_w = w_scaled;
@@ -264,7 +275,7 @@ TMV_API TMV_INLINE void tmv_squarify_current(
       /* Stop if aspect ratio would worsen */
       if (new_worst > worst)
       {
-        row_weight -= items[end].weight;
+        row_weight -= model->items[end].weight;
         break;
       }
 
@@ -281,7 +292,7 @@ TMV_API TMV_INLINE void tmv_squarify_current(
       tmv_rect row_area = render_area;
       row_area.width = row_length;
 
-      tmv_layout_row(row_area, &items[start], row_count, rects, rects_count, stats);
+      tmv_layout_row(model, row_area, &model->items[start], row_count);
       render_area.x += row_length;
       render_area.width -= row_length;
     }
@@ -290,7 +301,7 @@ TMV_API TMV_INLINE void tmv_squarify_current(
       tmv_rect row_area = render_area;
       row_area.height = row_length;
 
-      tmv_layout_row(row_area, &items[start], row_count, rects, rects_count, stats);
+      tmv_layout_row(model, row_area, &model->items[start], row_count);
       render_area.y += row_length;
       render_area.height -= row_length;
     }
@@ -300,41 +311,41 @@ TMV_API TMV_INLINE void tmv_squarify_current(
 }
 
 TMV_API TMV_INLINE void tmv_squarify(
-    tmv_rect area,    /* The area on which the squarified treemap should be aligned */
-    tmv_item *items,  /* The descending by weight sorted treemap items*/
-    int items_count,  /* The number of items */
-    tmv_rect *rects,  /* The output rects that have been computed */
-    int *rects_count, /* The output number of rects computed */
-    tmv_stats *stats  /* The output stats/metrics */
+    tmv_model *model,
+    tmv_rect area /* The area on which the squarified treemap should be aligned */
 )
 {
-  int i;
-  int j;
+  unsigned long i;
+  unsigned long j;
 
-  if (items_count == 0)
+  if (model->items_count == 0)
   {
     return;
   }
 
   /* Lay out the current level */
-  tmv_squarify_current(area, items, items_count, rects, rects_count, stats);
+  tmv_squarify_current(model, area);
 
   /* For each item, recurse into children if any */
-  for (i = *rects_count - items_count, j = 0; j < items_count; ++j, ++i)
+  for (i = model->rects_count - model->items_count, j = 0; j < model->items_count; ++j, ++i)
   {
-    tmv_item *item = &items[j];
+    tmv_item *item = &model->items[j];
 
     if (item->children_count > 0)
     {
-      tmv_rect parent_rect = rects[i];
+      tmv_rect parent_rect = model->rects[i];
 
-      tmv_squarify(
-          parent_rect,
-          item->children,
-          item->children_count,
-          rects,
-          rects_count,
-          stats);
+      tmv_model child_model;
+      child_model.items = item->children;
+      child_model.items_count = item->children_count;
+      child_model.rects = model->rects;
+      child_model.rects_count = model->rects_count;
+      child_model.stats = model->stats;
+
+      tmv_squarify(&child_model, parent_rect);
+
+      /* Update parent's rect count with value from child */
+      model->rects_count = child_model.rects_count;
     }
   }
 }
@@ -364,22 +375,17 @@ TMV_API TMV_INLINE void tmv_binary_encode(
     unsigned char *out_binary,         /* Output buffer for executable */
     unsigned long out_binary_capacity, /* Capacity of output buffer */
     unsigned long *out_binary_size,    /* Actual size of output binary buffer*/
-    tmv_rect area,                     /* The area on which the squarified treemap should be aligned */
-    tmv_item *items,                   /* The descending by weight sorted treemap items*/
-    int items_count,                   /* The number of items */
-    int items_user_data_size,          /* Size of user_data in bytes per item */
-    tmv_rect *rects,                   /* The output rects that have been computed */
-    int *rects_count,                  /* The output number of rects computed */
-    tmv_stats *stats                   /* The output stats/metrics */
+    tmv_model *model,
+    tmv_rect area /* The area on which the squarified treemap should be aligned */
 )
 {
   unsigned char *ptr = out_binary;
   unsigned char *end = out_binary + out_binary_capacity;
 
   unsigned long size_struct_area = sizeof(area);
-  unsigned long size_struct_stats = sizeof(*stats);
-  unsigned long size_struct_items = (unsigned long)tmv_total_items(items, items_count) * ((unsigned long)sizeof(*items) + (unsigned long)items_user_data_size);
-  unsigned long size_struct_rects = (unsigned long)*rects_count * (unsigned long)sizeof(*rects);
+  unsigned long size_struct_stats = sizeof(model->stats);
+  unsigned long size_struct_items = tmv_total_items(model->items, model->items_count) * ((unsigned long)sizeof(*model->items) + model->items_user_data_size);
+  unsigned long size_struct_rects = model->rects_count * (unsigned long)sizeof(*model->rects);
 
   if (end - ptr < 5)
   {
@@ -409,21 +415,21 @@ TMV_API TMV_INLINE void tmv_binary_encode(
   ptr += 4;
   tmv_binary_memcpy(ptr, &size_struct_rects, 4);
   ptr += 4;
-  tmv_binary_memcpy(ptr, &items_count, 4);
+  tmv_binary_memcpy(ptr, &model->items_count, 4);
   ptr += 4;
-  tmv_binary_memcpy(ptr, &items_user_data_size, 4);
+  tmv_binary_memcpy(ptr, &model->items_user_data_size, 4);
   ptr += 4;
-  tmv_binary_memcpy(ptr, rects_count, 4);
+  tmv_binary_memcpy(ptr, &model->rects_count, 4);
   ptr += 4;
 
   /* Write the tmv data */
   tmv_binary_memcpy(ptr, &area, size_struct_area);
   ptr += size_struct_area;
-  tmv_binary_memcpy(ptr, stats, size_struct_stats);
+  tmv_binary_memcpy(ptr, &model->stats, size_struct_stats);
   ptr += size_struct_stats;
-  tmv_binary_memcpy(ptr, items, size_struct_items);
+  tmv_binary_memcpy(ptr, model->items, size_struct_items);
   ptr += size_struct_items;
-  tmv_binary_memcpy(ptr, rects, size_struct_rects);
+  tmv_binary_memcpy(ptr, model->rects, size_struct_rects);
   ptr += size_struct_rects;
 
   *out_binary_size = TMV_BINARY_SIZE_HEADER + size_struct_area + size_struct_stats + size_struct_items + size_struct_rects;
@@ -440,13 +446,8 @@ TMV_API TMV_INLINE unsigned long tmv_binary_read_ul(unsigned char *ptr)
 TMV_API TMV_INLINE void tmv_binary_decode(
     unsigned char *in_binary,     /* Output buffer for executable */
     unsigned long in_binary_size, /* Actual size of output binary buffer*/
-    tmv_rect *area,               /* The area on which the squarified treemap should be aligned */
-    tmv_item *items,              /* The descending by weight sorted treemap items*/
-    int *items_count,             /* The number of items */
-    int *items_user_data_size,    /* Size of user_data in bytes per item */
-    tmv_rect *rects,              /* The output rects that have been computed */
-    int *rects_count,             /* The output number of rects computed */
-    tmv_stats *stats              /* The output stats/metrics */
+    tmv_model *model,
+    tmv_rect *area /* The area on which the squarified treemap should be aligned */
 )
 {
   unsigned char *binary_ptr;
@@ -503,33 +504,33 @@ TMV_API TMV_INLINE void tmv_binary_decode(
     return;
   }
 
-  *items_count = (int)tmv_binary_read_ul(binary_ptr);
+  model->items_count = tmv_binary_read_ul(binary_ptr);
   binary_ptr += 4;
 
-  *items_user_data_size = (int)tmv_binary_read_ul(binary_ptr);
+  model->items_user_data_size = tmv_binary_read_ul(binary_ptr);
   binary_ptr += 4;
 
-  *rects_count = (int)tmv_binary_read_ul(binary_ptr);
+  model->rects_count = tmv_binary_read_ul(binary_ptr);
   binary_ptr += 4;
 
   area = (tmv_rect *)binary_ptr;
   binary_ptr += size_struct_area;
 
-  stats = (tmv_stats *)binary_ptr;
+  model->stats = *(tmv_stats *)binary_ptr;
   binary_ptr += size_struct_stats;
 
-  items = (tmv_item *)binary_ptr;
+  model->items = (tmv_item *)binary_ptr;
   binary_ptr += size_struct_items;
 
-  rects = (tmv_rect *)binary_ptr;
+  model->rects = (tmv_rect *)binary_ptr;
 
   (void)area;
-  (void)stats;
-  (void)items;
-  (void)items_count;
-  (void)items_user_data_size;
-  (void)rects;
-  (void)rects_count;
+  (void)model->stats;
+  (void)model->items;
+  (void)model->items_count;
+  (void)model->items_user_data_size;
+  (void)model->rects;
+  (void)model->rects_count;
 }
 
 #endif /* TMV_H */

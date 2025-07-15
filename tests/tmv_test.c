@@ -22,13 +22,13 @@ TMV_API TMV_INLINE double tmv_fabs(double x)
 #define TMV_MAX_RECTS 1024
 #define TMV_ASSERT_DBL_EQ(a, b) assert(tmv_fabs((a) - (b)) < 1e-6)
 
-void tmv_test_print_rects(tmv_rect *rects, int rect_count)
+void tmv_test_print_rects(tmv_rect *rects, unsigned long rect_count)
 {
-  int i;
+  unsigned long i;
   for (i = 0; i < rect_count; ++i)
   {
     tmv_rect rect = rects[i];
-    printf("id: %5i, x: %5.2f, y: %5.2f, w: %5.2f, h: %5.2f\n", rect.id, rect.x, rect.y, rect.width, rect.height);
+    printf("id: %5lu, x: %5.2f, y: %5.2f, w: %5.2f, h: %5.2f\n", rect.id, rect.x, rect.y, rect.width, rect.height);
   }
 }
 
@@ -38,7 +38,6 @@ void tmv_test_simple_sort(void)
   tmv_rect area = {0, 0, 0, 100, 100};
 
   tmv_rect rects[TMV_MAX_RECTS];
-  int rect_count = 0;
 
   tmv_item items[] = {
       {1, 10.0, 0, 0, 0},
@@ -46,26 +45,31 @@ void tmv_test_simple_sort(void)
       {3, 20.0, 0, 0, 0},
       {4, 1.0, 0, 0, 0}};
 
-  tmv_stats stats = {0};
+  /* The unified tmv model */
+  tmv_model model = {0};
+  model.rects = rects;
+  model.items = items;
+  model.items_count = TMV_ARRAY_SIZE(items);
 
   assert(TMV_ARRAY_SIZE(items) == 4);
 
-  tmv_squarify(area, items, TMV_ARRAY_SIZE(items), rects, &rect_count, &stats);
-  assert(rect_count == 4);
+  tmv_squarify(&model, area);
+
+  assert(model.rects_count == 4);
 
   /* Items are sorted by weight afterwards */
-  assert(items[0].id == 3);
-  assert(items[1].id == 1);
-  assert(items[2].id == 2);
-  assert(items[3].id == 4);
+  assert(model.items[0].id == 3);
+  assert(model.items[1].id == 1);
+  assert(model.items[2].id == 2);
+  assert(model.items[3].id == 4);
 
-  tmv_test_print_rects(rects, rect_count);
+  tmv_test_print_rects(model.rects, model.rects_count);
 
   /* Rects are sorted by weight afterwards */
-  assert(rects[0].id == 3);
-  assert(rects[1].id == 1);
-  assert(rects[2].id == 2);
-  assert(rects[3].id == 4);
+  assert(model.rects[0].id == 3);
+  assert(model.rects[1].id == 1);
+  assert(model.rects[2].id == 2);
+  assert(model.rects[3].id == 4);
 }
 
 void tmv_test_simple_layout(void)
@@ -73,8 +77,8 @@ void tmv_test_simple_layout(void)
   /* The area on which the squarified treemap should be aligned */
   tmv_rect area = {0, 0, 0, 100, 100};
 
+  /* A buffer to store the computed rects */
   tmv_rect rects[TMV_MAX_RECTS];
-  int rect_count = 0;
 
   /*
      Expected squarified treemap output if width = 100 and height = 100:
@@ -91,19 +95,23 @@ void tmv_test_simple_layout(void)
       {3, 10.0, 0, 0, 0},
       {4, 10.0, 0, 0, 0}};
 
-  tmv_stats stats = {0};
+  /* The unified tmv model */
+  tmv_model model = {0};
+  model.rects = rects;
+  model.items = items;
+  model.items_count = TMV_ARRAY_SIZE(items);
 
   assert(TMV_ARRAY_SIZE(items) == 4);
 
-  tmv_squarify(area, items, TMV_ARRAY_SIZE(items), rects, &rect_count, &stats);
-  assert(rect_count == 4);
+  tmv_squarify(&model, area);
+  assert(model.rects_count == 4);
 
-  tmv_test_print_rects(rects, rect_count);
+  tmv_test_print_rects(model.rects, model.rects_count);
 
-  assert(rects[0].id == 1 && rects[0].x == 0 && rects[0].y == 0 && rects[0].width == 50 && rects[0].height == 50);
-  assert(rects[1].id == 2 && rects[1].x == 0 && rects[1].y == 50 && rects[1].width == 50 && rects[1].height == 50);
-  assert(rects[2].id == 3 && rects[2].x == 50 && rects[2].y == 0 && rects[2].width == 50 && rects[2].height == 50);
-  assert(rects[3].id == 4 && rects[3].x == 50 && rects[3].y == 50 && rects[3].width == 50 && rects[3].height == 50);
+  assert(model.rects[0].id == 1 && model.rects[0].x == 0 && model.rects[0].y == 0 && model.rects[0].width == 50 && model.rects[0].height == 50);
+  assert(model.rects[1].id == 2 && model.rects[1].x == 0 && model.rects[1].y == 50 && model.rects[1].width == 50 && model.rects[1].height == 50);
+  assert(model.rects[2].id == 3 && model.rects[2].x == 50 && model.rects[2].y == 0 && model.rects[2].width == 50 && model.rects[2].height == 50);
+  assert(model.rects[3].id == 4 && model.rects[3].x == 50 && model.rects[3].y == 50 && model.rects[3].width == 50 && model.rects[3].height == 50);
 }
 
 void tmv_test_simple_recursive_layout(void)
@@ -115,7 +123,6 @@ void tmv_test_simple_recursive_layout(void)
 
   /* Define a output buffer for output rects */
   tmv_rect rects[TMV_MAX_RECTS];
-  int rect_count = 0;
 
   /*
    Expected squarified treemap output if width = 100 and height = 100:
@@ -141,7 +148,8 @@ void tmv_test_simple_recursive_layout(void)
       {3, 10.0, 0, 0, 0},
       {4, 10.0, 0, 0, 0}};
 
-  tmv_stats stats = {0};
+  /* The unified tmv model */
+  tmv_model model = {0};
 
   children[0] = child1;
   children[1] = child2;
@@ -150,32 +158,32 @@ void tmv_test_simple_recursive_layout(void)
 
   items[0].children = children;
 
+  model.rects = rects;
+  model.items = items;
+  model.items_count = TMV_ARRAY_SIZE(items);
+
   /* Build squarified recursive treemap view */
   tmv_squarify(
-      area,                  /* The area on which the squarified treemap should be aligned */
-      items,                 /* List of treemap items */
-      TMV_ARRAY_SIZE(items), /* Size of top level items */
-      rects,                 /* The output buffer for rectangular shapes computed */
-      &rect_count,           /* The number of rectangular shapes computed */
-      &stats                 /* The computed statistics */
+      &model, /* The unified tmv_model contain all data */
+      area    /* The render area size for treemap       */
   );
 
-  /* Afterwards you can iterate through the rects */
+  /* Afterwards you can iterate through the item.rects with item.rects_count */
 
-  assert(rect_count == 8);
+  assert(model.rects_count == 8);
 
-  tmv_test_print_rects(rects, rect_count);
+  tmv_test_print_rects(model.rects, model.rects_count);
 
-  assert(rects[0].id == 1 && rects[0].x == 0 && rects[0].y == 0 && rects[0].width == 50 && rects[0].height == 50);
-  assert(rects[1].id == 2 && rects[1].x == 0 && rects[1].y == 50 && rects[1].width == 50 && rects[1].height == 50);
-  assert(rects[2].id == 3 && rects[2].x == 50 && rects[2].y == 0 && rects[2].width == 50 && rects[2].height == 50);
-  assert(rects[3].id == 4 && rects[3].x == 50 && rects[3].y == 50 && rects[3].width == 50 && rects[3].height == 50);
+  assert(model.rects[0].id == 1 && model.rects[0].x == 0 && model.rects[0].y == 0 && model.rects[0].width == 50 && model.rects[0].height == 50);
+  assert(model.rects[1].id == 2 && model.rects[1].x == 0 && model.rects[1].y == 50 && model.rects[1].width == 50 && model.rects[1].height == 50);
+  assert(model.rects[2].id == 3 && model.rects[2].x == 50 && model.rects[2].y == 0 && model.rects[2].width == 50 && model.rects[2].height == 50);
+  assert(model.rects[3].id == 4 && model.rects[3].x == 50 && model.rects[3].y == 50 && model.rects[3].width == 50 && model.rects[3].height == 50);
 
   /* Children equally spaced in 50x50 area from parent id == 1 */
-  assert(rects[4].id == 5 && rects[4].x == 0 && rects[4].y == 0 && rects[4].width == 25 && rects[4].height == 25);
-  assert(rects[5].id == 6 && rects[5].x == 0 && rects[5].y == 25 && rects[5].width == 25 && rects[5].height == 25);
-  assert(rects[6].id == 7 && rects[6].x == 25 && rects[6].y == 0 && rects[6].width == 25 && rects[6].height == 25);
-  assert(rects[7].id == 8 && rects[7].x == 25 && rects[7].y == 25 && rects[7].width == 25 && rects[7].height == 25);
+  assert(model.rects[4].id == 5 && model.rects[4].x == 0 && model.rects[4].y == 0 && model.rects[4].width == 25 && model.rects[4].height == 25);
+  assert(model.rects[5].id == 6 && model.rects[5].x == 0 && model.rects[5].y == 25 && model.rects[5].width == 25 && model.rects[5].height == 25);
+  assert(model.rects[6].id == 7 && model.rects[6].x == 25 && model.rects[6].y == 0 && model.rects[6].width == 25 && model.rects[6].height == 25);
+  assert(model.rects[7].id == 8 && model.rects[7].x == 25 && model.rects[7].y == 25 && model.rects[7].width == 25 && model.rects[7].height == 25);
 
   found = tmv_find_item_by_id(items, TMV_ARRAY_SIZE(items), 3);
   assert(found->id == 3);
@@ -184,21 +192,24 @@ void tmv_test_simple_recursive_layout(void)
 
 void tmv_test_simple_more_items(void)
 {
+  unsigned long i;
+
   /* The area on which the squarified treemap should be aligned */
   tmv_rect area = {0, 0, 0, 100, 100};
 
   /* Define a output buffer for output rects */
   tmv_rect rects[TMV_MAX_RECTS];
-  int rect_count = 0;
 
 #define TMVTSMI_ITEMS 625 /* 25*25 equal weighted items on a 100x100 grid */
   tmv_item items[TMVTSMI_ITEMS];
 
-  tmv_stats stats = {0};
+  /* The unified tmv model */
+  tmv_model model = {0};
+  model.rects = rects;
+  model.items = items;
+  model.items_count = TMV_ARRAY_SIZE(items);
 
-  unsigned int i;
-
-  for (i = 0; i < TMVTSMI_ITEMS; ++i)
+  for (i = 0; i < model.items_count; ++i)
   {
     tmv_item item = {0};
     item.id = i;
@@ -207,18 +218,11 @@ void tmv_test_simple_more_items(void)
   }
 
   /* Build squarified recursive treemap view */
-  tmv_squarify(
-      area,                  /* The area on which the squarified treemap should be aligned */
-      items,                 /* List of treemap items */
-      TMV_ARRAY_SIZE(items), /* Size of top level items */
-      rects,                 /* The output buffer for rectangular shapes computed */
-      &rect_count,           /* The number of rectangular shapes computed */
-      &stats                 /* The computed statistics */
-  );
+  tmv_squarify(&model, area);
 
-  assert(rect_count == TMVTSMI_ITEMS);
+  assert(model.rects_count == TMVTSMI_ITEMS);
 
-  for (i = 0; i < (unsigned int)rect_count; ++i)
+  for (i = 0; i < model.rects_count; ++i)
   {
     tmv_rect rect = rects[i];
     if (i % 100 == 0)
@@ -250,15 +254,13 @@ void tmv_test_to_binary(void)
   tmv_stats *binary_stats;
   tmv_item *binary_items;
   tmv_rect *binary_rects;
-  int i;
+
+  unsigned long i;
 
   /* The area on which the squarified treemap should be aligned */
   tmv_rect area = {99, 0, 0, 100, 100};
 
   tmv_rect rects[TMV_MAX_RECTS];
-  int rect_count = 0;
-
-  int user_data_size = 0;
 
   tmv_item child1 = {5, 2.5, 0, 0, 0};
   tmv_item child2 = {6, 2.5, 0, 0, 0};
@@ -272,7 +274,7 @@ void tmv_test_to_binary(void)
       {3, 10.0, 0, 0, 0},
       {4, 10.0, 0, 0, 0}};
 
-  tmv_stats stats = {0};
+  tmv_model model = {0};
 
   children[0] = child1;
   children[1] = child2;
@@ -281,18 +283,20 @@ void tmv_test_to_binary(void)
 
   items[0].children = children;
 
+  model.rects = rects;
+  model.items = items;
+  model.items_count = TMV_ARRAY_SIZE(items);
+
   /* Build squarified recursive treemap view */
   tmv_squarify(
-      area,                  /* The area on which the squarified treemap should be aligned */
-      items,                 /* List of treemap items */
-      TMV_ARRAY_SIZE(items), /* Size of top level items */
-      rects,                 /* The output buffer for rectangular shapes computed */
-      &rect_count,           /* The number of rectangular shapes computed */
-      &stats                 /* The computed statistics */
+      &model,
+      area /* The area on which the squarified treemap should be aligned */
   );
 
-  assert(rect_count == 8);
-  assert(rect_count == tmv_total_items(items, TMV_ARRAY_SIZE(items)));
+  printf("stop after\n");
+
+  assert(model.rects_count == 8);
+  assert(model.rects_count == tmv_total_items(model.items, model.items_count));
 
   /* ########################################################## */
   /* # Encoding to binary                                       */
@@ -301,13 +305,8 @@ void tmv_test_to_binary(void)
       binary_buffer,
       BINARY_BUFFER_CAPACITY,
       &binary_buffer_size,
-      area,                  /* The area on which the squarified treemap should be aligned */
-      items,                 /* List of treemap items */
-      TMV_ARRAY_SIZE(items), /* Size of top level items */
-      user_data_size,        /* Size of user_data in bytes per item */
-      rects,                 /* The output buffer for rectangular shapes computed */
-      &rect_count,           /* The number of rectangular shapes computed */
-      &stats                 /* The computed statistics */
+      &model,
+      area /* The area on which the squarified treemap should be aligned */
   );
 
   /* ########################################################## */
@@ -315,8 +314,8 @@ void tmv_test_to_binary(void)
   /* ########################################################## */
   printf("[bin] binary_buffer_size: %lu\n", binary_buffer_size);
 
-  size_struct_items = (unsigned long)tmv_total_items(items, TMV_ARRAY_SIZE(items)) * ((unsigned long)sizeof(*items) + (unsigned long)user_data_size);
-  size_struct_rects = (unsigned long)rect_count * (unsigned long)sizeof(*rects);
+  size_struct_items = tmv_total_items(items, TMV_ARRAY_SIZE(items)) * ((unsigned long)sizeof(*items) + model.items_user_data_size);
+  size_struct_rects = model.rects_count * (unsigned long)sizeof(*rects);
 
   printf("[bin]  size_struct_items: %lu\n", size_struct_items);
   printf("[bin]  size_struct_rects: %lu\n", size_struct_rects);
@@ -338,17 +337,17 @@ void tmv_test_to_binary(void)
 
   assert(tmv_test_binary_read_ul(binary_ptr) == (unsigned long)sizeof(area));
   binary_ptr += 4;
-  assert(tmv_test_binary_read_ul(binary_ptr) == (unsigned long)sizeof(stats));
+  assert(tmv_test_binary_read_ul(binary_ptr) == (unsigned long)sizeof(model.stats));
   binary_ptr += 4;
   assert(tmv_test_binary_read_ul(binary_ptr) == size_struct_items);
   binary_ptr += 4;
   assert(tmv_test_binary_read_ul(binary_ptr) == size_struct_rects);
   binary_ptr += 4;
-  assert(tmv_test_binary_read_ul(binary_ptr) == (unsigned long)TMV_ARRAY_SIZE(items));
+  assert(tmv_test_binary_read_ul(binary_ptr) == model.items_count);
   binary_ptr += 4;
-  assert(tmv_test_binary_read_ul(binary_ptr) == (unsigned long)user_data_size);
+  assert(tmv_test_binary_read_ul(binary_ptr) == model.items_user_data_size);
   binary_ptr += 4;
-  assert(tmv_test_binary_read_ul(binary_ptr) == (unsigned long)rect_count);
+  assert(tmv_test_binary_read_ul(binary_ptr) == model.rects_count);
   binary_ptr += 4;
 
   /* check area */
@@ -362,31 +361,31 @@ void tmv_test_to_binary(void)
 
   /* check stats */
   binary_stats = (tmv_stats *)binary_ptr;
-  assert(binary_stats->weigth_min == stats.weigth_min);
-  assert(binary_stats->weigth_max == stats.weigth_max);
-  assert(binary_stats->weigth_sum == stats.weigth_sum);
-  assert(binary_stats->count == stats.count);
-  binary_ptr += (unsigned long)sizeof(stats);
+  assert(binary_stats->weigth_min == model.stats.weigth_min);
+  assert(binary_stats->weigth_max == model.stats.weigth_max);
+  assert(binary_stats->weigth_sum == model.stats.weigth_sum);
+  assert(binary_stats->count == model.stats.count);
+  binary_ptr += (unsigned long)sizeof(model.stats);
 
   /* check items */
   binary_items = (tmv_item *)binary_ptr;
-  for (i = 0; i < (int)TMV_ARRAY_SIZE(items); ++i)
+  for (i = 0; i < model.items_count; ++i)
   {
-    assert(binary_items[i].id == items[i].id);
-    TMV_ASSERT_DBL_EQ(binary_items[i].weight, items[i].weight);
-    assert(binary_items[i].children_count == items[i].children_count);
+    assert(binary_items[i].id == model.items[i].id);
+    TMV_ASSERT_DBL_EQ(binary_items[i].weight, model.items[i].weight);
+    assert(binary_items[i].children_count == model.items[i].children_count);
   }
   binary_ptr += size_struct_items;
 
   /* check rects */
   binary_rects = (tmv_rect *)binary_ptr;
-  for (i = 0; i < rect_count; ++i)
+  for (i = 0; i < model.rects_count; ++i)
   {
-    assert(binary_rects[i].id == rects[i].id);
-    TMV_ASSERT_DBL_EQ(binary_rects[i].x, rects[i].x);
-    TMV_ASSERT_DBL_EQ(binary_rects[i].y, rects[i].y);
-    TMV_ASSERT_DBL_EQ(binary_rects[i].width, rects[i].width);
-    TMV_ASSERT_DBL_EQ(binary_rects[i].height, rects[i].height);
+    assert(binary_rects[i].id == model.rects[i].id);
+    TMV_ASSERT_DBL_EQ(binary_rects[i].x, model.rects[i].x);
+    TMV_ASSERT_DBL_EQ(binary_rects[i].y, model.rects[i].y);
+    TMV_ASSERT_DBL_EQ(binary_rects[i].width, model.rects[i].width);
+    TMV_ASSERT_DBL_EQ(binary_rects[i].height, model.rects[i].height);
   }
 }
 

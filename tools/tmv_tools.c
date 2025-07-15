@@ -20,9 +20,9 @@ static vgg_color color_end = {255, 85, 0};      /*  End (dark orange): 255,  85,
 #define TMV_MAX_RECTS 2048
 #define VGG_MAX_BUFFER_SIZE 65536 /* SVG Buffer Size */
 
-static void tmv_write_to_svg(char *filename, double area_width, double area_height, tmv_rect *rects, int rects_count, tmv_item *items, int items_count, double min_weight, double max_weight)
+static void tmv_write_to_svg(char *filename, double area_width, double area_height, tmv_rect *rects, unsigned long rects_count, tmv_item *items, unsigned long items_count, double min_weight, double max_weight)
 {
-  int i;
+  unsigned long i;
   unsigned char vgg_buffer[VGG_MAX_BUFFER_SIZE];
 
   vgg_svg_writer w;
@@ -60,13 +60,12 @@ static void tmv_to_svg_linear_weights(void)
   /* The area on which the squarified treemap should be aligned */
   tmv_rect area = {0, 0, 0, 400, 400};
 
-  tmv_stats stats = {0};
-
   /* Define a output buffer for output rects */
   tmv_rect rects[TMV_MAX_RECTS];
-  int rect_count = 0;
 
   tmv_item items[TMV_LW_ITEMS];
+
+  tmv_model model = {0};
 
   unsigned int i;
 
@@ -78,18 +77,18 @@ static void tmv_to_svg_linear_weights(void)
     items[i] = item;
   }
 
+  model.items = items;
+  model.items_count = TMV_ARRAY_SIZE(items);
+  model.rects = rects;
+
   /* Build squarified recursive treemap view */
   tmv_squarify(
-      area,                  /* The area on which the squarified treemap should be aligned */
-      items,                 /* List of treemap items */
-      TMV_ARRAY_SIZE(items), /* Size of top level items */
-      rects,                 /* The output buffer for rectangular shapes computed */
-      &rect_count,           /* The number of rectangular shapes computed */
-      &stats                 /* The calculated statistic */
+      &model,
+      area /* The area on which the squarified treemap should be aligned */
   );
 
   /* Write to SVG file */
-  tmv_write_to_svg("tmv_to_svg_linear_weights.svg", area.width, area.height, rects, rect_count, items, tmv_total_items(items, TMV_ARRAY_SIZE(items)), stats.weigth_min, stats.weigth_max);
+  tmv_write_to_svg("tmv_to_svg_linear_weights.svg", area.width, area.height, model.rects, model.rects_count, model.items, tmv_total_items(model.items, model.items_count), model.stats.weigth_min, model.stats.weigth_max);
 }
 
 static void tmv_to_svg_nested(void)
@@ -97,11 +96,8 @@ static void tmv_to_svg_nested(void)
   /* The area on which the squarified treemap should be aligned */
   tmv_rect area = {0, 0, 0, 400, 400};
 
-  tmv_stats stats = {0};
-
   /* Define a output buffer for output rects */
   tmv_rect rects[TMV_MAX_RECTS];
-  int rect_count = 0;
 
   tmv_item child1 = {5, 2.5, 0, 0, 0};
   tmv_item child2 = {6, 2.5, 0, 0, 0};
@@ -121,6 +117,8 @@ static void tmv_to_svg_nested(void)
       {3, 5.0, 0, 0, 0},
       {4, 5.0, 0, 0, 0}};
 
+  tmv_model model = {0};
+
   children_linear[0] = child1;
   children_linear[1] = child2;
   children_linear[2] = child3;
@@ -137,18 +135,18 @@ static void tmv_to_svg_nested(void)
   items[3].children = children_weighted;
   items[3].children_count = 4;
 
+  model.items = items;
+  model.items_count = TMV_ARRAY_SIZE(items);
+  model.rects = rects;
+
   /* Build squarified recursive treemap view */
   tmv_squarify(
-      area,        /* The area on which the squarified treemap should be aligned */
-      items,       /* List of treemap items */
-      4,           /* Size of top level items */
-      rects,       /* The output buffer for rectangular shapes computed */
-      &rect_count, /* The number of rectangular shapes computed */
-      &stats       /* The calculated statistics */
+      &model,
+      area /* The area on which the squarified treemap should be aligned */
   );
 
   /* Write to SVG file */
-  tmv_write_to_svg("tmv_to_svg_nested.svg", area.width, area.height, rects, rect_count, items, tmv_total_items(items, TMV_ARRAY_SIZE(items)), stats.weigth_min, stats.weigth_max);
+  tmv_write_to_svg("tmv_to_svg_nested.svg", area.width, area.height, model.rects, model.rects_count, model.items, tmv_total_items(model.items, model.items_count), model.stats.weigth_min, model.stats.weigth_max);
 }
 
 int main(void)

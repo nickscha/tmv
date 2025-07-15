@@ -28,15 +28,11 @@ int main() {
     /* The area on which the squarified treemap should be aligned */
     tmv_rect area = {0, 0, 0, 100, 100};
 
-    tmv_stats stats = {0};
-
     /* Define a output buffer for output rects */
     tmv_rect rects[TMV_MAX_RECTS];
-    int rects_count = 0;
 
     /*
-    Expected squarified treemap output 
-    if width = 100 and height = 100:
+    Expected squarified treemap output if width = 100 and height = 100:
 
     id: 1, x:  0, y:  0, width: 50, height: 50
     id: 2, x:  0, y: 50, width: 50, height: 50
@@ -59,6 +55,9 @@ int main() {
         {3, 10.0, 0, 0, 0},
         {4, 10.0, 0, 0, 0}};
 
+    /* The unified tmv model */
+    tmv_model model = {0};
+
     children[0] = child1;
     children[1] = child2;
     children[2] = child3;
@@ -66,17 +65,17 @@ int main() {
 
     items[0].children = children;
 
+    model.rects = rects;
+    model.items = items;
+    model.items_count = TMV_ARRAY_SIZE(items);
+
     /* Build squarified recursive treemap view */
     tmv_squarify(
-        area,                  /* The render area size for treemap       */
-        items,                 /* List of treemap items                  */
-        TMV_ARRAY_SIZE(items), /* Size of top level items                */
-        rects,                 /* Output buffer for rect shapes computed */
-        &rects_count,          /* Number of rect shapes computed         */
-        &stats                 /* The computed statistics                */
+        &model, /* The unified tmv_model contain all data */
+        area    /* The render area size for treemap       */
     );
 
-    /* Afterwards you can iterate through the rects with rects_count */
+    /* Afterwards you can iterate through the item.rects with item.rects_count */
 
     return 0;
 }
