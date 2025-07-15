@@ -14,13 +14,9 @@ LICENSE
 
 #include "test.h" /* Simple Testing framework */
 
-TMV_API TMV_INLINE double tmv_fabs(double x)
-{
-  return (x < 0.0) ? -x : x;
-}
+#define TVM_TEST_EPSILON 1e-6
 
 #define TMV_MAX_RECTS 1024
-#define TMV_ASSERT_DBL_EQ(a, b) assert(tmv_fabs((a) - (b)) < 1e-6)
 
 void tmv_test_print_rects(tmv_rect *rects, unsigned long rect_count)
 {
@@ -187,7 +183,7 @@ void tmv_test_simple_recursive_layout(void)
 
   found = tmv_find_item_by_id(items, TMV_ARRAY_SIZE(items), 3);
   assert(found->id == 3);
-  TMV_ASSERT_DBL_EQ(found->weight, 10.0);
+  assert_equalsd(found->weight, 10.0, TVM_TEST_EPSILON);
 }
 
 void tmv_test_simple_more_items(void)
@@ -227,7 +223,7 @@ void tmv_test_simple_more_items(void)
     tmv_rect rect = rects[i];
     if (i % 100 == 0)
     {
-      TMV_ASSERT_DBL_EQ(rect.width + rect.height, 8.0);
+      assert_equalsd(rect.width + rect.height, 8.0, TVM_TEST_EPSILON);
     }
   }
 }
@@ -343,10 +339,10 @@ void tmv_test_binary_encode(void)
   /* check area */
   binary_area = (tmv_rect *)binary_ptr;
   assert(binary_area->id == 99);
-  TMV_ASSERT_DBL_EQ(binary_area->x, 0);
-  TMV_ASSERT_DBL_EQ(binary_area->y, 0);
-  TMV_ASSERT_DBL_EQ(binary_area->width, 100.0);
-  TMV_ASSERT_DBL_EQ(binary_area->height, 100.0);
+  assert_equalsd(binary_area->x, 0, TVM_TEST_EPSILON);
+  assert_equalsd(binary_area->y, 0, TVM_TEST_EPSILON);
+  assert_equalsd(binary_area->width, 100.0, TVM_TEST_EPSILON);
+  assert_equalsd(binary_area->height, 100.0, TVM_TEST_EPSILON);
   binary_ptr += (unsigned long)sizeof(area);
 
   /* check stats */
@@ -362,7 +358,7 @@ void tmv_test_binary_encode(void)
   for (i = 0; i < model.items_count; ++i)
   {
     assert(binary_items[i].id == model.items[i].id);
-    TMV_ASSERT_DBL_EQ(binary_items[i].weight, model.items[i].weight);
+    assert_equalsd(binary_items[i].weight, model.items[i].weight, TVM_TEST_EPSILON);
     assert(binary_items[i].children_count == model.items[i].children_count);
   }
 
@@ -372,7 +368,7 @@ void tmv_test_binary_encode(void)
   for (i = 0; i < binary_items[0].children_count; ++i)
   {
     assert(binary_items[0].children[i].id == model.items[0].children[i].id);
-    TMV_ASSERT_DBL_EQ(binary_items[0].children[i].weight, model.items[0].children[i].weight);
+    assert_equalsd(binary_items[0].children[i].weight, model.items[0].children[i].weight, TVM_TEST_EPSILON);
     assert(binary_items[0].children[i].children_count == model.items[0].children[i].children_count);
   }
 
@@ -383,10 +379,10 @@ void tmv_test_binary_encode(void)
   for (i = 0; i < model.rects_count; ++i)
   {
     assert(binary_rects[i].id == model.rects[i].id);
-    TMV_ASSERT_DBL_EQ(binary_rects[i].x, model.rects[i].x);
-    TMV_ASSERT_DBL_EQ(binary_rects[i].y, model.rects[i].y);
-    TMV_ASSERT_DBL_EQ(binary_rects[i].width, model.rects[i].width);
-    TMV_ASSERT_DBL_EQ(binary_rects[i].height, model.rects[i].height);
+    assert_equalsd(binary_rects[i].x, model.rects[i].x, TVM_TEST_EPSILON);
+    assert_equalsd(binary_rects[i].y, model.rects[i].y, TVM_TEST_EPSILON);
+    assert_equalsd(binary_rects[i].width, model.rects[i].width, TVM_TEST_EPSILON);
+    assert_equalsd(binary_rects[i].height, model.rects[i].height, TVM_TEST_EPSILON);
   }
 }
 
@@ -464,10 +460,10 @@ void tmv_test_binary_decode(void)
 
   /* Check area struct */
   assert(binary_area.id == area.id);
-  TMV_ASSERT_DBL_EQ(binary_area.x, area.x);
-  TMV_ASSERT_DBL_EQ(binary_area.y, area.y);
-  TMV_ASSERT_DBL_EQ(binary_area.width, area.width);
-  TMV_ASSERT_DBL_EQ(binary_area.height, area.height);
+  assert_equalsd(binary_area.x, area.x, TVM_TEST_EPSILON);
+  assert_equalsd(binary_area.y, area.y, TVM_TEST_EPSILON);
+  assert_equalsd(binary_area.width, area.width, TVM_TEST_EPSILON);
+  assert_equalsd(binary_area.height, area.height, TVM_TEST_EPSILON);
 
   /* Check model counts */
   assert(binary_model.items_count == model.items_count);
@@ -485,14 +481,14 @@ void tmv_test_binary_decode(void)
   {
     assert(binary_model.items[i].id == model.items[i].id);
     assert(binary_model.items[i].children_count == model.items[i].children_count);
-    TMV_ASSERT_DBL_EQ(binary_model.items[i].weight, model.items[i].weight);
+    assert_equalsd(binary_model.items[i].weight, model.items[i].weight, TVM_TEST_EPSILON);
   }
 
   /* Check model childrens */
   for (i = 0; i < binary_model.items[0].children_count; ++i)
   {
     assert(binary_model.items[0].children[i].id == model.items[0].children[i].id);
-    TMV_ASSERT_DBL_EQ(binary_model.items[0].children[i].weight, model.items[0].children[i].weight);
+    assert_equalsd(binary_model.items[0].children[i].weight, model.items[0].children[i].weight, TVM_TEST_EPSILON);
     assert(binary_model.items[0].children[i].children_count == model.items[0].children[i].children_count);
   }
 
@@ -500,10 +496,10 @@ void tmv_test_binary_decode(void)
   for (i = 0; i < model.rects_count; ++i)
   {
     assert(binary_model.rects[i].id == model.rects[i].id);
-    TMV_ASSERT_DBL_EQ(binary_model.rects[i].x, model.rects[i].x);
-    TMV_ASSERT_DBL_EQ(binary_model.rects[i].y, model.rects[i].y);
-    TMV_ASSERT_DBL_EQ(binary_model.rects[i].width, model.rects[i].width);
-    TMV_ASSERT_DBL_EQ(binary_model.rects[i].height, model.rects[i].height);
+    assert_equalsd(binary_model.rects[i].x, model.rects[i].x, TVM_TEST_EPSILON);
+    assert_equalsd(binary_model.rects[i].y, model.rects[i].y, TVM_TEST_EPSILON);
+    assert_equalsd(binary_model.rects[i].width, model.rects[i].width, TVM_TEST_EPSILON);
+    assert_equalsd(binary_model.rects[i].height, model.rects[i].height, TVM_TEST_EPSILON);
   }
 }
 
