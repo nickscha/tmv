@@ -391,7 +391,7 @@ TMV_API TMV_INLINE unsigned long tmv_binary_items_size(tmv_item *item, unsigned 
 }
 
 /* Flattens the tmv_item struct data with its recursive level of children */
-TMV_API TMV_INLINE char *tmv_binary_encode_item(unsigned char *out_binary, tmv_item *item, unsigned long items_user_data_size)
+TMV_API TMV_INLINE unsigned char *tmv_binary_encode_item(unsigned char *out_binary, tmv_item *item, unsigned long items_user_data_size)
 {
   unsigned long i;
 
