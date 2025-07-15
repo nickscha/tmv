@@ -81,6 +81,14 @@ int main() {
 }
 ```
 
+## Binary Format Specification
+
+This library allows you to export or import the data (tmv_area & tmv_model) in its own ".tmv" binary format file.
+
+<p align="center">
+  <img src="assets/tmv_binary_format.png" alt="Binary Format Specification" />
+</p>
+
 ## Run Example: nostdlib, freestsanding
 
 In this repo you will find the "examples/tmv_win32_nostdlib.c" with the corresponding "build.bat" file which
