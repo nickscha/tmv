@@ -232,15 +232,7 @@ void tmv_test_simple_more_items(void)
   }
 }
 
-unsigned long tmv_test_binary_read_ul(unsigned char *ptr)
-{
-  return ((unsigned long)ptr[0]) |
-         ((unsigned long)ptr[1] << 8) |
-         ((unsigned long)ptr[2] << 16) |
-         ((unsigned long)ptr[3] << 24);
-}
-
-void tmv_test_to_binary(void)
+void tmv_test_binary_encode(void)
 {
 #define BINARY_BUFFER_CAPACITY 1024
   unsigned char binary_buffer[BINARY_BUFFER_CAPACITY];
@@ -333,19 +325,19 @@ void tmv_test_to_binary(void)
   /* Test counts */
   binary_ptr = binary_buffer + (TMV_BINARY_SIZE_MAGIC + TMV_BINARY_SIZE_VERSION);
 
-  assert(tmv_test_binary_read_ul(binary_ptr) == (unsigned long)sizeof(area));
+  assert(tmv_binary_read_ul(binary_ptr) == (unsigned long)sizeof(area));
   binary_ptr += 4;
-  assert(tmv_test_binary_read_ul(binary_ptr) == (unsigned long)sizeof(model.stats));
+  assert(tmv_binary_read_ul(binary_ptr) == (unsigned long)sizeof(model.stats));
   binary_ptr += 4;
-  assert(tmv_test_binary_read_ul(binary_ptr) == size_struct_items);
+  assert(tmv_binary_read_ul(binary_ptr) == size_struct_items);
   binary_ptr += 4;
-  assert(tmv_test_binary_read_ul(binary_ptr) == size_struct_rects);
+  assert(tmv_binary_read_ul(binary_ptr) == size_struct_rects);
   binary_ptr += 4;
-  assert(tmv_test_binary_read_ul(binary_ptr) == model.items_count);
+  assert(tmv_binary_read_ul(binary_ptr) == model.items_count);
   binary_ptr += 4;
-  assert(tmv_test_binary_read_ul(binary_ptr) == model.items_user_data_size);
+  assert(tmv_binary_read_ul(binary_ptr) == model.items_user_data_size);
   binary_ptr += 4;
-  assert(tmv_test_binary_read_ul(binary_ptr) == model.rects_count);
+  assert(tmv_binary_read_ul(binary_ptr) == model.rects_count);
   binary_ptr += 4;
 
   /* check area */
@@ -398,13 +390,131 @@ void tmv_test_to_binary(void)
   }
 }
 
+void tmv_test_binary_decode(void)
+{
+  unsigned long i;
+
+  /* The encoded model data */
+#define BINARY_BUFFER_CAPACITY 1024
+  unsigned char binary_buffer[BINARY_BUFFER_CAPACITY];
+  unsigned long binary_buffer_size = 0;
+
+  /* The decoded model data */
+  tmv_rect binary_area = {0};
+  tmv_model binary_model = {0};
+
+  /* The area on which the squarified treemap should be aligned */
+  tmv_rect area = {99, 0, 0, 100, 100};
+
+  tmv_rect rects[TMV_MAX_RECTS];
+
+  tmv_item child1 = {5, 2.5, 0, 0, 0};
+  tmv_item child2 = {6, 2.5, 0, 0, 0};
+  tmv_item child3 = {7, 2.5, 0, 0, 0};
+  tmv_item child4 = {8, 2.5, 0, 0, 0};
+  tmv_item children[4];
+
+  tmv_item items[] = {
+      {1, 10.0, 0, 0, 4},
+      {2, 10.0, 0, 0, 0},
+      {3, 10.0, 0, 0, 0},
+      {4, 10.0, 0, 0, 0}};
+
+  tmv_model model = {0};
+
+  children[0] = child1;
+  children[1] = child2;
+  children[2] = child3;
+  children[3] = child4;
+
+  items[0].children = children;
+
+  model.rects = rects;
+  model.items = items;
+  model.items_count = TMV_ARRAY_SIZE(items);
+
+  /* Build squarified recursive treemap view */
+  tmv_squarify(
+      &model,
+      area /* The area on which the squarified treemap should be aligned */
+  );
+
+  assert(model.rects_count == 8);
+  assert(model.rects_count == tmv_total_items(model.items, model.items_count));
+
+  /* ########################################################## */
+  /* # Encoding to binary                                       */
+  /* ########################################################## */
+  tmv_binary_encode(
+      binary_buffer,
+      BINARY_BUFFER_CAPACITY,
+      &binary_buffer_size,
+      &model,
+      area /* The area on which the squarified treemap should be aligned */
+  );
+
+  /* ########################################################## */
+  /* # Decode from binary                                       */
+  /* ########################################################## */
+  tmv_binary_decode(
+      binary_buffer,
+      binary_buffer_size,
+      &binary_model,
+      &binary_area);
+
+  /* Check area struct */
+  assert(binary_area.id == area.id);
+  TMV_ASSERT_DBL_EQ(binary_area.x, area.x);
+  TMV_ASSERT_DBL_EQ(binary_area.y, area.y);
+  TMV_ASSERT_DBL_EQ(binary_area.width, area.width);
+  TMV_ASSERT_DBL_EQ(binary_area.height, area.height);
+
+  /* Check model counts */
+  assert(binary_model.items_count == model.items_count);
+  assert(binary_model.items_user_data_size == model.items_user_data_size);
+  assert(binary_model.rects_count == model.rects_count);
+
+  /* Check model stats */
+  assert(binary_model.stats.weigth_min == model.stats.weigth_min);
+  assert(binary_model.stats.weigth_max == model.stats.weigth_max);
+  assert(binary_model.stats.weigth_sum == model.stats.weigth_sum);
+  assert(binary_model.stats.count == model.stats.count);
+
+  /* Check model items */
+  for (i = 0; i < model.items_count; ++i)
+  {
+    assert(binary_model.items[i].id == model.items[i].id);
+    assert(binary_model.items[i].children_count == model.items[i].children_count);
+    TMV_ASSERT_DBL_EQ(binary_model.items[i].weight, model.items[i].weight);
+  }
+
+  /* Check model childrens */
+  for (i = 0; i < binary_model.items[0].children_count; ++i)
+  {
+    assert(binary_model.items[0].children[i].id == model.items[0].children[i].id);
+    TMV_ASSERT_DBL_EQ(binary_model.items[0].children[i].weight, model.items[0].children[i].weight);
+    assert(binary_model.items[0].children[i].children_count == model.items[0].children[i].children_count);
+  }
+
+  /* Check model rects */
+  for (i = 0; i < model.rects_count; ++i)
+  {
+    assert(binary_model.rects[i].id == model.rects[i].id);
+    TMV_ASSERT_DBL_EQ(binary_model.rects[i].x, model.rects[i].x);
+    TMV_ASSERT_DBL_EQ(binary_model.rects[i].y, model.rects[i].y);
+    TMV_ASSERT_DBL_EQ(binary_model.rects[i].width, model.rects[i].width);
+    TMV_ASSERT_DBL_EQ(binary_model.rects[i].height, model.rects[i].height);
+  }
+}
+
 int main(void)
 {
   tmv_test_simple_sort();
   tmv_test_simple_layout();
   tmv_test_simple_recursive_layout();
   tmv_test_simple_more_items();
-  tmv_test_to_binary();
+  tmv_test_binary_encode();
+  tmv_test_binary_decode();
 
   return 0;
 }

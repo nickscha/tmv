@@ -513,7 +513,7 @@ TMV_API TMV_INLINE void tmv_binary_decode(
   model->rects_count = tmv_binary_read_ul(binary_ptr);
   binary_ptr += 4;
 
-  area = (tmv_rect *)binary_ptr;
+  *area = *(tmv_rect *)binary_ptr;
   binary_ptr += size_struct_area;
 
   model->stats = *(tmv_stats *)binary_ptr;
@@ -523,14 +523,6 @@ TMV_API TMV_INLINE void tmv_binary_decode(
   binary_ptr += size_struct_items;
 
   model->rects = (tmv_rect *)binary_ptr;
-
-  (void)area;
-  (void)model->stats;
-  (void)model->items;
-  (void)model->items_count;
-  (void)model->items_user_data_size;
-  (void)model->rects;
-  (void)model->rects_count;
 }
 
 #endif /* TMV_H */
