@@ -10,10 +10,11 @@ LICENSE
   See end of file for detailed license information.
 
 */
-#include "../tmv.h"
-#include "../tmv_platform_io.h"
+#include "../tmv.h"             /* The Squarified Treemap algorythm   */
+#include "../tmv_platform_io.h" /* Optional: Used for read/write file */
+#include "deps/clp.h"           /* Command Line Parser                */
+#include "deps/vgg.h"           /* SVG Graphics Generator             */
 
-#include "deps/vgg.h"
 #include "../tests/test.h"
 
 static vgg_color color_start = {144, 224, 239}; /* Start (light teal): 144, 224, 239 */
@@ -22,7 +23,7 @@ static vgg_color color_end = {255, 85, 0};      /*  End (dark orange): 255,  85,
 #define TMV_MAX_RECTS 2048
 #define VGG_MAX_BUFFER_SIZE 65536 /* SVG Buffer Size */
 
-static void tmv_write_to_svg(char *filename, double area_width, double area_height, tmv_rect *rects, unsigned long rects_count, tmv_item *items, unsigned long items_count, double min_weight, double max_weight)
+static void tmv_write_to_svg(char *filename, tmv_model *model, tmv_rect *area)
 {
   unsigned long i;
   unsigned char vgg_buffer[VGG_MAX_BUFFER_SIZE];
@@ -32,17 +33,17 @@ static void tmv_write_to_svg(char *filename, double area_width, double area_heig
   w.capacity = VGG_MAX_BUFFER_SIZE;
   w.length = 0;
 
-  vgg_svg_start(&w, "tmvsvg", area_width, area_height);
+  vgg_svg_start(&w, "tmvsvg", area->width, area->height);
 
-  for (i = 0; i < rects_count; ++i)
+  for (i = 0; i < model->rects_count; ++i)
   {
-    tmv_rect rect = rects[i];
-    tmv_item *item = tmv_find_item_by_id(items, items_count, rect.id);
+    tmv_rect rect = model->rects[i];
+    tmv_item *item = tmv_find_item_by_id(model->items, model->items_count, rect.id);
 
     vgg_rect r = {0};
     r.header.id = rect.id;
     r.header.type = VGG_TYPE_RECT;
-    r.header.color_fill = vgg_color_map_linear(item->weight, min_weight, max_weight, color_start, color_end);
+    r.header.color_fill = vgg_color_map_linear(item->weight, model->stats.weigth_min, model->stats.weigth_max, color_start, color_end);
     r.x = rect.x;
     r.y = rect.y;
     r.width = rect.width;
@@ -90,7 +91,7 @@ static void tmv_to_svg_linear_weights(void)
   );
 
   /* Write to SVG file */
-  tmv_write_to_svg("tmv_to_svg_linear_weights.svg", area.width, area.height, model.rects, model.rects_count, model.items, tmv_total_items(model.items, model.items_count), model.stats.weigth_min, model.stats.weigth_max);
+  tmv_write_to_svg("tmv_to_svg_linear_weights.svg", &model, &area);
 }
 
 static void tmv_to_svg_nested(void)
@@ -148,7 +149,7 @@ static void tmv_to_svg_nested(void)
   );
 
   /* Write to SVG file */
-  tmv_write_to_svg("tmv_to_svg_nested.svg", area.width, area.height, model.rects, model.rects_count, model.items, tmv_total_items(model.items, model.items_count), model.stats.weigth_min, model.stats.weigth_max);
+  tmv_write_to_svg("tmv_to_svg_nested.svg", &model, &area);
 }
 
 static void tmv_tools_binary_encode(void)
@@ -245,12 +246,109 @@ static void tmv_tools_binary_decode(void)
   assert(model.items[3].children_count == 4);
 }
 
-int main(void)
+#define TMV_TOOLS_FLAGS 3
+
+void tmv_tools_tmv_to_svg(char *input_tmv_file, char *output_svg_file)
 {
+  unsigned long i;
+  unsigned long j;
+
+#define TMV_TOOLS_FILE_BUFFER_CAPACITY 8192
+  unsigned char file_buffer[TMV_TOOLS_FILE_BUFFER_CAPACITY];
+  unsigned long file_buffer_size = 0;
+
+  tmv_model model = {0};
+  tmv_rect area = {0};
+
+  tmv_platform_read(input_tmv_file, file_buffer, TMV_TOOLS_FILE_BUFFER_CAPACITY, &file_buffer_size);
+
+  tmv_binary_decode(file_buffer, file_buffer_size, &model, &area);
+
+  printf("[area]                    id: %10lu\n", area.id);
+  printf("[area]                     x: %10f\n", area.x);
+  printf("[area]                     y: %10f\n", area.y);
+  printf("[area]                 width: %10f\n", area.width);
+  printf("[area]                height: %10f\n", area.height);
+  printf("\n");
+  printf("[model]          items_count: %10lu\n", model.items_count);
+  printf("[model] items_user_data_size: %10lu\n", model.items_user_data_size);
+  printf("[model]          rects_count: %10lu\n", model.rects_count);
+  printf("[model]           weigth_min: %10f\n", model.stats.weigth_min);
+  printf("[model]           weigth_max: %10f\n", model.stats.weigth_max);
+  printf("[model]           weigth_sum: %10f\n", model.stats.weigth_sum);
+  printf("[model]                count: %10lu\n", model.stats.count);
+  printf("\n");
+
+  for (i = 0; i < model.items_count; ++i)
+  {
+    tmv_item item = model.items[i];
+
+    printf(
+        " [item][%2lu] id: %5lu, weight: %10f, child_count: %5lu\n",
+        i,
+        item.id,
+        item.weight,
+        item.children_count);
+
+    if (item.children_count > 0)
+    {
+      for (j = 0; j < item.children_count; ++j)
+      {
+        tmv_item child = item.children[j];
+
+        printf(
+            "[child][%2lu] id: %5lu, weight: %10f, child_count: %5lu\n",
+            j,
+            child.id,
+            child.weight,
+            child.children_count);
+      }
+    }
+  }
+
+  tmv_write_to_svg(output_svg_file, &model, &area);
+}
+
+int main(int argc, char **argv)
+{
+  clp_flag flags[TMV_TOOLS_FLAGS];
+  char flag_command[32] = {0};
+  char flag_input[32] = {0};
+  char flag_output[32] = {0};
+
+  flags[0].name = "cmd";
+  flags[0].value = flag_command;
+  flags[0].def_value = "tmv_to_svg";
+  flags[0].maxlen = sizeof(flag_command);
+  flags[0].type = FLAG_STRING;
+
+  flags[1].name = "input";
+  flags[1].value = flag_input;
+  flags[1].def_value = "";
+  flags[1].maxlen = sizeof(flag_input);
+  flags[1].type = FLAG_STRING;
+
+  flags[2].name = "output";
+  flags[2].value = flag_output;
+  flags[2].def_value = "";
+  flags[2].maxlen = sizeof(flag_output);
+  flags[2].type = FLAG_STRING;
+
+  /* Parse the command line arguments */
+  clp_process(flags, CLP_ARRAY_SIZE(flags), argv, argc);
+
+  printf("[tmv_tools][cli]    cmd: %s\n", flag_command);
+  printf("[tmv_tools][cli]  input: %s\n", flag_input);
+  printf("[tmv_tools][cli] output: %s\n", flag_output);
+  printf("\n");
+
+  /* TODO(nickscha): binary encoding does not write children */
   tmv_to_svg_linear_weights();
   tmv_to_svg_nested();
   tmv_tools_binary_encode();
   tmv_tools_binary_decode();
+
+  tmv_tools_tmv_to_svg(flag_input, flag_output);
 
   return 0;
 }

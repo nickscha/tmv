@@ -334,7 +334,6 @@ TMV_API TMV_INLINE void tmv_squarify(
     if (item->children_count > 0)
     {
       tmv_rect parent_rect = model->rects[i];
-
       tmv_model child_model;
       child_model.items = item->children;
       child_model.items_count = item->children_count;
@@ -375,8 +374,8 @@ TMV_API TMV_INLINE void tmv_binary_encode(
     unsigned char *out_binary,         /* Output buffer for executable */
     unsigned long out_binary_capacity, /* Capacity of output buffer */
     unsigned long *out_binary_size,    /* Actual size of output binary buffer*/
-    tmv_model *model,
-    tmv_rect area /* The area on which the squarified treemap should be aligned */
+    tmv_model *model,                  /* The tmv data */
+    tmv_rect area                      /* The area on which the squarified treemap should be aligned */
 )
 {
   unsigned char *ptr = out_binary;
