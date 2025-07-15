@@ -373,6 +373,17 @@ void tmv_test_to_binary(void)
     TMV_ASSERT_DBL_EQ(binary_items[i].weight, model.items[i].weight);
     assert(binary_items[i].children_count == model.items[i].children_count);
   }
+
+  assert(binary_items[0].children_count == 4);
+
+  /* Check items children s*/
+  for (i = 0; i < binary_items[0].children_count; ++i)
+  {
+    assert(binary_items[0].children[i].id == model.items[0].children[i].id);
+    TMV_ASSERT_DBL_EQ(binary_items[0].children[i].weight, model.items[0].children[i].weight);
+    assert(binary_items[0].children[i].children_count == model.items[0].children[i].children_count);
+  }
+
   binary_ptr += size_struct_items;
 
   /* check rects */
