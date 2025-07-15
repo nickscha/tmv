@@ -11,8 +11,10 @@ LICENSE
 
 */
 #include "../tmv.h"
+#include "../tmv_platform_io.h"
+
 #include "deps/vgg.h"
-#include "deps/vgg_platform_write.h"
+#include "../tests/test.h"
 
 static vgg_color color_start = {144, 224, 239}; /* Start (light teal): 144, 224, 239 */
 static vgg_color color_end = {255, 85, 0};      /*  End (dark orange): 255,  85,   0 */
@@ -50,7 +52,7 @@ static void tmv_write_to_svg(char *filename, double area_width, double area_heig
   }
 
   vgg_svg_end(&w);
-  vgg_platform_write(filename, w.buffer, (unsigned long)w.length);
+  tmv_platform_write(filename, w.buffer, (unsigned long)w.length);
 }
 
 #define TMV_LW_ITEMS 625 /* 25*25 equal weighted items on a 100x100 grid */
@@ -149,10 +151,106 @@ static void tmv_to_svg_nested(void)
   tmv_write_to_svg("tmv_to_svg_nested.svg", area.width, area.height, model.rects, model.rects_count, model.items, tmv_total_items(model.items, model.items_count), model.stats.weigth_min, model.stats.weigth_max);
 }
 
+static void tmv_tools_binary_encode(void)
+{
+#define BINARY_BUFFER_CAPACITY 8192
+  unsigned char binary_buffer[BINARY_BUFFER_CAPACITY];
+  unsigned long binary_buffer_size = 0;
+
+  /* The area on which the squarified treemap should be aligned */
+  tmv_rect area = {0, 0, 0, 400, 400};
+
+  /* Define a output buffer for output rects */
+  tmv_rect rects[TMV_MAX_RECTS];
+
+  tmv_item child1 = {5, 2.5, 0, 0, 0};
+  tmv_item child2 = {6, 2.5, 0, 0, 0};
+  tmv_item child3 = {7, 2.5, 0, 0, 0};
+  tmv_item child4 = {8, 2.5, 0, 0, 0};
+  tmv_item children_linear[4];
+
+  tmv_item child5 = {9, 5.0, 0, 0, 0};
+  tmv_item child6 = {10, 2.5, 0, 0, 0};
+  tmv_item child7 = {11, 1.25, 0, 0, 0};
+  tmv_item child8 = {12, 1.25, 0, 0, 0};
+  tmv_item children_weighted[4];
+
+  tmv_item items[] = {
+      {1, 20.0, 0, 0, 0},
+      {2, 10.0, 0, 0, 0},
+      {3, 5.0, 0, 0, 0},
+      {4, 5.0, 0, 0, 0}};
+
+  tmv_model model = {0};
+
+  children_linear[0] = child1;
+  children_linear[1] = child2;
+  children_linear[2] = child3;
+  children_linear[3] = child4;
+
+  children_weighted[0] = child5;
+  children_weighted[1] = child6;
+  children_weighted[2] = child7;
+  children_weighted[3] = child8;
+
+  items[1].children = children_linear;
+  items[1].children_count = 4;
+
+  items[3].children = children_weighted;
+  items[3].children_count = 4;
+
+  model.items = items;
+  model.items_count = TMV_ARRAY_SIZE(items);
+  model.rects = rects;
+
+  /* Build squarified recursive treemap view */
+  tmv_squarify(
+      &model,
+      area /* The area on which the squarified treemap should be aligned */
+  );
+
+  /* ########################################################## */
+  /* # Encoding to binary                                       */
+  /* ########################################################## */
+  tmv_binary_encode(
+      binary_buffer,
+      BINARY_BUFFER_CAPACITY,
+      &binary_buffer_size,
+      &model,
+      area /* The area on which the squarified treemap should be aligned */
+  );
+
+  /* Write to TMV file */
+  assert(tmv_platform_write("tmv_tools_binary.tmv", binary_buffer, binary_buffer_size));
+}
+
+static void tmv_tools_binary_decode(void)
+{
+#define FILE_BUFFER_CAPACITY 8192
+  unsigned char file_buffer[FILE_BUFFER_CAPACITY];
+  unsigned long file_buffer_size = 0;
+
+  tmv_rect area = {0};
+  tmv_model model = {0};
+
+  /* Read binary file */
+  assert(tmv_platform_read("tmv_tools_binary.tmv", file_buffer, FILE_BUFFER_CAPACITY, &file_buffer_size));
+
+  /* Decode binary file to model */
+  tmv_binary_decode(file_buffer, file_buffer_size, &model, &area);
+
+  assert(model.items_count == 4);
+  assert(model.rects_count == 12);
+  assert(model.items[1].children_count == 4);
+  assert(model.items[3].children_count == 4);
+}
+
 int main(void)
 {
   tmv_to_svg_linear_weights();
   tmv_to_svg_nested();
+  tmv_tools_binary_encode();
+  tmv_tools_binary_decode();
 
   return 0;
 }

@@ -1,6 +1,6 @@
-/* vgg_platform_write.h - v0.1 - public domain data structures - nickscha 2025
+/* tmv_platform_io.h - v0.1 - public domain data structures - nickscha 2025
 
-A C89 standard compliant, single header, nostdlib (no C Standard Library) utility to write a file using OS-specific APIs.
+A C89 standard compliant, single header, nostdlib (no C Standard Library) utility to read/write a file using OS-specific APIs.
 
 Supports:
  - Windows (Win32 API)
@@ -13,8 +13,8 @@ LICENSE
   See end of file for detailed license information.
 
 */
-#ifndef VGG_PLATFORM_WRITE_H
-#define VGG_PLATFORM_WRITE_H
+#ifndef TMV_PLATFORM_IO_H
+#define TMV_PLATFORM_IO_H
 
 /* #############################################################################
  * # COMPILER SETTINGS
@@ -22,31 +22,38 @@ LICENSE
  */
 /* Check if using C99 or later (inline is supported) */
 #if __STDC_VERSION__ >= 199901L
-#define VGG_PLATFORM_INLINE inline
-#define VGG_PLATFORM_API extern
+#define TMV_PLATFORM_INLINE inline
+#define TMV_PLATFORM_API extern
 #elif defined(__GNUC__) || defined(__clang__)
-#define VGG_PLATFORM_INLINE __inline__
-#define VGG_PLATFORM_API static
+#define TMV_PLATFORM_INLINE __inline__
+#define TMV_PLATFORM_API static
 #elif defined(_MSC_VER)
-#define VGG_PLATFORM_INLINE __inline
-#define VGG_PLATFORM_API static
+#define TMV_PLATFORM_INLINE __inline
+#define TMV_PLATFORM_API static
 #else
-#define VGG_PLATFORM_INLINE
-#define VGG_PLATFORM_API static
+#define TMV_PLATFORM_INLINE
+#define TMV_PLATFORM_API static
 #endif
 
 #ifdef _WIN32
-#define VGG_WIN32_GENERIC_WRITE (0x40000000L)
-#define VGG_WIN32_CREATE_ALWAYS 2
-#define VGG_WIN32_FILE_ATTRIBUTE_NORMAL 0x00000080
+#define TMV_PLATFORM_WIN32_INVALID_HANDLE ((void *)-1)
+#define TMV_PLATFORM_WIN32_GENERIC_WRITE (0x40000000L)
+#define TMV_PLATFORM_WIN32_CREATE_ALWAYS 2
+#define TMV_PLATFORM_WIN32_FILE_ATTRIBUTE_NORMAL 0x00000080
+
+/* IO read */
+#define TMV_PLATFORM_WIN32_INVALID_FILE_SIZE ((unsigned long)0xffffffff)
+#define TMV_PLATFORM_WIN32_GENERIC_READ (0x80000000L)
+#define TMV_PLATFORM_WIN32_FILE_SHARE_READ 0x00000001
+#define TMV_PLATFORM_WIN32_OPEN_EXISTING 3
 
 #ifndef _WINDOWS_
-#define VGG_WIN32_API(r) __declspec(dllimport) r __stdcall
+#define TMV_PLATFORM_WIN32_API(r) __declspec(dllimport) r __stdcall
 
-VGG_WIN32_API(int)
+TMV_PLATFORM_WIN32_API(int)
 CloseHandle(void *hObject);
 
-VGG_WIN32_API(void *)
+TMV_PLATFORM_WIN32_API(void *)
 CreateFileA(
     const char *lpFileName,
     unsigned long dwDesiredAccess,
@@ -56,7 +63,7 @@ CreateFileA(
     unsigned long dwFlagsAndAttributes,
     void *hTemplateFile);
 
-VGG_WIN32_API(int)
+TMV_PLATFORM_WIN32_API(int)
 WriteFile(
     void *hFile,
     const void *lpBuffer,
@@ -64,19 +71,81 @@ WriteFile(
     unsigned long *lpNumberOfBytesWritten,
     void *lpOverlapped);
 
-#endif /* _WINDOWS_   */
+/* IO read */
+TMV_PLATFORM_WIN32_API(unsigned long)
+GetFileSize(
+    void *hFile,
+    unsigned long *lpFileSizeHigh);
 
-VGG_PLATFORM_API VGG_PLATFORM_INLINE int vgg_platform_write(char *filename, unsigned char *buffer, unsigned long size)
+TMV_PLATFORM_WIN32_API(int)
+ReadFile(
+    void *hFile,
+    void *lpBuffer,
+    unsigned long nNumberOfBytesToRead,
+    unsigned long *lpNumberOfBytesRead,
+    void *lpOverlapped);
+
+#endif /* _WINDOWS_ */
+
+TMV_PLATFORM_API TMV_PLATFORM_INLINE int tmv_platform_write(char *filename, unsigned char *buffer, unsigned long size)
 {
     void *hFile;
     unsigned long bytes_written;
     int success;
 
-    hFile = CreateFileA(filename, VGG_WIN32_GENERIC_WRITE, 0, 0, VGG_WIN32_CREATE_ALWAYS, VGG_WIN32_FILE_ATTRIBUTE_NORMAL, 0);
+    hFile = CreateFileA(filename, TMV_PLATFORM_WIN32_GENERIC_WRITE, 0, 0, TMV_PLATFORM_WIN32_CREATE_ALWAYS, TMV_PLATFORM_WIN32_FILE_ATTRIBUTE_NORMAL, 0);
+
+    if (hFile == TMV_PLATFORM_WIN32_INVALID_HANDLE)
+    {
+        return 0;
+    }
+
     success = WriteFile(hFile, buffer, size, &bytes_written, 0);
     success = CloseHandle(hFile);
 
     return (success && (bytes_written == size));
+}
+
+TMV_PLATFORM_API TMV_PLATFORM_INLINE int tmv_platform_read(char *filename, unsigned char *file_buffer, unsigned long file_buffer_capacity, unsigned long *file_buffer_size)
+{
+    void *hFile;
+    unsigned long fileSize;
+    unsigned long bytesRead;
+
+    hFile = CreateFileA(filename, TMV_PLATFORM_WIN32_GENERIC_READ, TMV_PLATFORM_WIN32_FILE_SHARE_READ, 0, TMV_PLATFORM_WIN32_OPEN_EXISTING, TMV_PLATFORM_WIN32_FILE_ATTRIBUTE_NORMAL, 0);
+
+    if (hFile == TMV_PLATFORM_WIN32_INVALID_HANDLE)
+    {
+        return 0;
+    }
+
+    fileSize = GetFileSize(hFile, 0);
+
+    if (fileSize == TMV_PLATFORM_WIN32_INVALID_FILE_SIZE)
+    {
+        CloseHandle(hFile);
+        return 0;
+    }
+
+    /* +1 for null terminator */
+    if (file_buffer_capacity < fileSize + 1)
+    {
+        CloseHandle(hFile);
+        return 0;
+    }
+
+    if (!ReadFile(hFile, file_buffer, fileSize, &bytesRead, 0) || bytesRead != fileSize)
+    {
+        CloseHandle(hFile);
+        return 0;
+    }
+
+    file_buffer[fileSize] = '\0';
+    *file_buffer_size = fileSize;
+
+    CloseHandle(hFile);
+
+    return 1;
 }
 
 #elif defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__HAIKU__)
@@ -86,7 +155,7 @@ VGG_PLATFORM_API VGG_PLATFORM_INLINE int vgg_platform_write(char *filename, unsi
 #include <sys/types.h>
 #include <sys/stat.h>
 
-VGG_PLATFORM_API VGG_PLATFORM_INLINE int vgg_platform_write(char *filename, unsigned char *buffer, unsigned long size)
+TMV_PLATFORM_API TMV_PLATFORM_INLINE int tmv_platform_write(char *filename, unsigned char *buffer, unsigned long size)
 {
     int fd;
     ssize_t written;
@@ -103,11 +172,49 @@ VGG_PLATFORM_API VGG_PLATFORM_INLINE int vgg_platform_write(char *filename, unsi
     return (written == (ssize_t)size);
 }
 
+TMV_PLATFORM_API TMV_PLATFORM_INLINE int tmv_platform_read(char *filename, unsigned char *file_buffer, unsigned long file_buffer_capacity, unsigned long *file_buffer_size)
+{
+    int fd;
+    struct stat st;
+    ssize_t bytes_read;
+
+    fd = open(filename, O_RDONLY);
+    if (fd < 0)
+    {
+        return 0;
+    }
+
+    if (fstat(fd, &st) != 0)
+    {
+        close(fd);
+        return 0;
+    }
+
+    if ((unsigned long)st.st_size + 1 > file_buffer_capacity)
+    {
+        close(fd);
+        return 0;
+    }
+
+    bytes_read = read(fd, file_buffer, st.st_size);
+    if (bytes_read != st.st_size)
+    {
+        close(fd);
+        return 0;
+    }
+
+    file_buffer[st.st_size] = '\0'; /* Optional: null-terminate */
+    *file_buffer_size = st.st_size;
+
+    close(fd);
+    return 1;
+}
+
 #else
-#error "vgg_platform_write: unsupported operating system. please provide your own write binary file implementation"
+#error "tmv_platform_io: unsupported operating system. please provide your own write binary file implementation"
 #endif
 
-#endif /* VGG_PLATFORM_WRITE_H */
+#endif /* TMV_PLATFORM_IO_H */
 
 /*
    ------------------------------------------------------------------------------
