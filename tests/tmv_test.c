@@ -503,6 +503,158 @@ void tmv_test_binary_decode(void)
   }
 }
 
+typedef struct tmv_flat
+{
+
+  long id;        /* The id of this item that is also used for the computed tmv_rect */
+  long parent_id; /* The parent id of this item */
+  double weight;  /* The weight of the item */
+
+  unsigned long children_offset_index;
+  unsigned long children_count;
+
+} tmv_flat;
+
+void tmv_items_depth_sort_offset(tmv_flat *items, unsigned long count)
+{
+  unsigned long i, j;
+  int changed;
+  unsigned long iteration;
+
+  /* 1) Compute depths (iterative) */
+  for (iteration = 0; iteration < count; iteration++)
+  {
+    changed = 0;
+    for (i = 0; i < count; i++)
+    {
+      tmv_flat *item = &items[i];
+      if (item->parent_id == -1)
+      {
+        if (item->children_offset_index != 0)
+        {
+          item->children_offset_index = 0;
+          changed = 1;
+        }
+      }
+      else
+      {
+        for (j = 0; j < count; j++)
+        {
+          if (items[j].id == item->parent_id)
+          {
+            unsigned long new_depth = items[j].children_offset_index + 1;
+            if (item->children_offset_index != new_depth)
+            {
+              item->children_offset_index = new_depth;
+              changed = 1;
+            }
+            break;
+          }
+        }
+      }
+    }
+    if (!changed)
+      break;
+  }
+
+  /* 2) Stable insertion sort by depth (single pass) */
+  for (i = 1; i < count; i++)
+  {
+    tmv_flat key = items[i];
+    j = i;
+    while (j > 0 && items[j - 1].children_offset_index > key.children_offset_index)
+    {
+      items[j] = items[j - 1];
+      j--;
+    }
+    items[j] = key;
+  }
+
+  /* 3) Compute children offsets & counts in one pass */
+  for (i = 0; i < count; i++)
+  {
+    long pid = items[i].id;
+    unsigned long offset = 0;
+    unsigned long ccount = 0;
+
+    for (j = i + 1; j < count; j++)
+    {
+      if (items[j].parent_id == pid)
+      {
+        if (ccount == 0)
+          offset = j;
+        ccount++;
+      }
+      else if (ccount > 0)
+      {
+        break;
+      }
+    }
+    items[i].children_offset_index = (ccount > 0) ? offset : 0;
+    items[i].children_count = ccount;
+  }
+}
+
+void tmv_test_flat_tree(void)
+{
+  unsigned long i;
+
+  /* Layout
+     [0] p1
+     [1] p2:
+       [4] c1
+       [5] c2
+     [2] p3
+     [3] p4
+       [6] c3
+         [8] cc1
+         [9] cc2
+       [7] c4
+  */
+  tmv_flat item_p1 = {0, -1, 20.0, 0, 0};
+  tmv_flat item_p2 = {1, -1, 10.0, 0, 0};
+  tmv_flat item_p3 = {2, -1, 5.0, 0, 0};
+  tmv_flat item_p4 = {3, -1, 5.0, 0, 0};
+
+  tmv_flat item_c1 = {4, 1, 5.0, 0, 0};
+  tmv_flat item_c2 = {5, 1, 5.0, 0, 0};
+
+  tmv_flat item_c3 = {6, 3, 3.5, 0, 0};
+  tmv_flat item_c4 = {7, 3, 1.5, 0, 0};
+
+  tmv_flat item_cc1 = {8, 6, 1.75, 0, 0};
+  tmv_flat item_cc2 = {9, 6, 1.75, 0, 0};
+
+  /* Unordered random sort */
+  tmv_flat items[10];
+  items[0] = item_c1;
+  items[1] = item_p3;
+  items[2] = item_c2;
+  items[3] = item_cc1;
+  items[4] = item_p4;
+  items[5] = item_p1;
+  items[6] = item_p2;
+  items[7] = item_c3;
+  items[8] = item_cc2;
+  items[9] = item_c4;
+
+  assert(TMV_ARRAY_SIZE(items) == 10);
+
+  /* For the flat tree */
+  tmv_items_depth_sort_offset(items, TMV_ARRAY_SIZE(items));
+
+  for (i = 0; i < TMV_ARRAY_SIZE(items); ++i)
+  {
+    printf("[%2li] id: %3lu, parent_id: %3li, weight: %10f, children_offset_index: %5lu, children_count: %5lu\n",
+           i,
+           items[i].id,
+           items[i].parent_id,
+           items[i].weight,
+           items[i].children_offset_index,
+           items[i].children_count);
+  }
+}
+
 int main(void)
 {
   tmv_test_simple_sort();
@@ -511,6 +663,8 @@ int main(void)
   tmv_test_simple_more_items();
   tmv_test_binary_encode();
   tmv_test_binary_decode();
+
+  tmv_test_flat_tree();
 
   return 0;
 }
