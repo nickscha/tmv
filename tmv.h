@@ -165,25 +165,27 @@ TMV_API TMV_INLINE void tmv_layout_row(
 
   for (i = 0; i < row_count; ++i)
   {
-    double item_area = row_items[i].weight * scale;
+    tmv_item row_item = row_items[i];
+
+    double item_area = row_item.weight * scale;
     double w, h;
 
     /* Collect statistics */
-    if (row_items[i].children_count == 0)
+    if (row_item.children_count == 0)
     {
-      double w = row_items[i].weight;
+      double weight = row_item.weight;
 
-      if (model->stats.weigth_min < 0.0 || w < model->stats.weigth_min)
+      if (model->stats.weigth_min < 0.0 || weight < model->stats.weigth_min)
       {
-        model->stats.weigth_min = w;
+        model->stats.weigth_min = weight;
       }
 
-      if (model->stats.weigth_max < 0.0 || w > model->stats.weigth_max)
+      if (model->stats.weigth_max < 0.0 || weight > model->stats.weigth_max)
       {
-        model->stats.weigth_max = w;
+        model->stats.weigth_max = weight;
       }
 
-      model->stats.weigth_sum += w;
+      model->stats.weigth_sum += weight;
       model->stats.count += 1;
     }
 
@@ -209,7 +211,7 @@ TMV_API TMV_INLINE void tmv_layout_row(
       offset += h;
     }
 
-    model->rects[model->rects_count].id = row_items[i].id;
+    model->rects[model->rects_count].id = row_item.id;
     model->rects_count++;
   }
 }
@@ -219,27 +221,31 @@ TMV_API TMV_INLINE void tmv_squarify_current(
     tmv_rect render_area /* The area on which the squarified treemap should be aligned */
 )
 {
+  tmv_item *items = model->items;
+  unsigned long items_count = model->items_count;
+
   unsigned long start = 0;
-  double total_weight = tmv_total_weight(model->items, model->items_count);
+  double total_weight = tmv_total_weight(items, items_count);
   double area = render_area.width * render_area.height;
   double scale = (total_weight > 0.0) ? (area / total_weight) : 0.0;
 
-  tmv_insertion_sort_stable_desc(model->items, model->items_count);
+  tmv_insertion_sort_stable_desc(items, items_count);
 
-  while (start < model->items_count)
+  while (start < items_count)
   {
     unsigned long end = start;
     double row_weight = 0.0;
     double worst = 1e9;
     unsigned long i;
 
-    double side = (render_area.width >= render_area.height) ? render_area.height : render_area.width;
+    int horizontal = (render_area.width >= render_area.height);
+    double side = horizontal ? render_area.height : render_area.width;
 
     double row_length;
     unsigned long row_count;
 
     /* Try to add items[start..end] */
-    while (end < model->items_count)
+    while (end < items_count)
     {
       double max_w = -1e9;
       double min_w = 1e9;
@@ -250,12 +256,12 @@ TMV_API TMV_INLINE void tmv_squarify_current(
       double r2;
       double new_worst;
 
-      row_weight += model->items[end].weight;
+      row_weight += items[end].weight;
 
       /* Compute scaled weights and track min/max */
       for (i = start; i <= end; ++i)
       {
-        w_scaled = model->items[i].weight * scale;
+        w_scaled = items[i].weight * scale;
         if (w_scaled > max_w)
         {
           max_w = w_scaled;
@@ -275,7 +281,7 @@ TMV_API TMV_INLINE void tmv_squarify_current(
       /* Stop if aspect ratio would worsen */
       if (new_worst > worst)
       {
-        row_weight -= model->items[end].weight;
+        row_weight -= items[end].weight;
         break;
       }
 
@@ -287,12 +293,12 @@ TMV_API TMV_INLINE void tmv_squarify_current(
     row_length = (row_weight / total_weight) * (area / side);
     row_count = end - start;
 
-    if (render_area.width >= render_area.height)
+    if (horizontal)
     {
       tmv_rect row_area = render_area;
       row_area.width = row_length;
 
-      tmv_layout_row(model, row_area, &model->items[start], row_count);
+      tmv_layout_row(model, row_area, &items[start], row_count);
       render_area.x += row_length;
       render_area.width -= row_length;
     }
@@ -301,7 +307,7 @@ TMV_API TMV_INLINE void tmv_squarify_current(
       tmv_rect row_area = render_area;
       row_area.height = row_length;
 
-      tmv_layout_row(model, row_area, &model->items[start], row_count);
+      tmv_layout_row(model, row_area, &items[start], row_count);
       render_area.y += row_length;
       render_area.height -= row_length;
     }
