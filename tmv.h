@@ -31,25 +31,25 @@ LICENSE
 #endif
 
 #define TMV_ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+#define TMV_FIRST_VALID_PARENT_ID 0
 
 typedef struct tmv_item
 {
-  unsigned long id;
 
-  double weight;
+  /* User provided fields */
+  long id;        /* The id of this item that is also used for the computed tmv_rect */
+  long parent_id; /* The parent id of this item */
+  double weight;  /* The weight of the item */
 
-  /* Additional user data */
-  void *user_data;
-
-  /* Hierarchy */
-  struct tmv_item *children;
-  unsigned long children_count;
+  /* Computed fields */
+  unsigned long children_offset_index; /* The tmv_item index where the childrens are located */
+  unsigned long children_count;        /* The number of childrens */
 
 } tmv_item;
 
 typedef struct tmv_rect
 {
-  unsigned long id;
+  long id;
 
   double x;
   double y;
@@ -70,6 +70,7 @@ typedef struct tmv_stats
 typedef struct tmv_model
 {
   tmv_stats stats;                    /* The calculated stats and metrics  */
+  int items_sorted;                   /* Did the items have been sorted */
   unsigned long items_count;          /* The number of items */
   unsigned long items_user_data_size; /* The user_data size per item */
   unsigned long rects_count;          /* The output rects that have been computed */
@@ -77,24 +78,6 @@ typedef struct tmv_model
   tmv_rect *rects;                    /* The output rects that have been computed */
 
 } tmv_model;
-
-TMV_API TMV_INLINE unsigned long tmv_total_items(tmv_item *items, unsigned long items_count)
-{
-  unsigned long total = 0;
-  unsigned long i;
-
-  for (i = 0; i < items_count; ++i)
-  {
-    total += 1;
-
-    if (items[i].children && items[i].children_count > 0)
-    {
-      total += tmv_total_items(items[i].children, items[i].children_count);
-    }
-  }
-
-  return total;
-}
 
 TMV_API TMV_INLINE double tmv_total_weight(tmv_item *items, unsigned long count)
 {
@@ -107,27 +90,99 @@ TMV_API TMV_INLINE double tmv_total_weight(tmv_item *items, unsigned long count)
   return sum;
 }
 
-TMV_API TMV_INLINE tmv_item *tmv_find_item_by_id(tmv_item *items, unsigned long count, unsigned long id)
+TMV_API TMV_INLINE tmv_item *tmv_find_item_by_id(tmv_item *items, unsigned long count, long id)
 {
   unsigned long i;
+
   for (i = 0; i < count; ++i)
   {
     if (items[i].id == id)
     {
       return &items[i];
     }
-
-    if (items[i].children && items[i].children_count > 0)
-    {
-      tmv_item *found = tmv_find_item_by_id(items[i].children, items[i].children_count, id);
-      if (found != 0)
-      {
-        return found;
-      }
-    }
   }
 
   return 0;
+}
+
+TMV_API TMV_INLINE void tmv_items_depth_sort_offset(tmv_item *items, unsigned long count)
+{
+  unsigned long i, j;
+  int changed;
+  unsigned long iteration;
+
+  /* 1) Compute depths (iterative) */
+  for (iteration = 0; iteration < count; iteration++)
+  {
+    changed = 0;
+    for (i = 0; i < count; i++)
+    {
+      tmv_item *item = &items[i];
+      if (item->parent_id < TMV_FIRST_VALID_PARENT_ID)
+      {
+        if (item->children_offset_index != 0)
+        {
+          item->children_offset_index = 0;
+          changed = 1;
+        }
+      }
+      else
+      {
+        for (j = 0; j < count; j++)
+        {
+          if (items[j].id == item->parent_id)
+          {
+            unsigned long new_depth = items[j].children_offset_index + 1;
+            if (item->children_offset_index != new_depth)
+            {
+              item->children_offset_index = new_depth;
+              changed = 1;
+            }
+            break;
+          }
+        }
+      }
+    }
+    if (!changed)
+      break;
+  }
+
+  /* 2) Stable insertion sort by depth (single pass) */
+  for (i = 1; i < count; i++)
+  {
+    tmv_item key = items[i];
+    j = i;
+    while (j > 0 && items[j - 1].children_offset_index > key.children_offset_index)
+    {
+      items[j] = items[j - 1];
+      j--;
+    }
+    items[j] = key;
+  }
+
+  /* 3) Compute children offsets & counts in one pass */
+  for (i = 0; i < count; i++)
+  {
+    long pid = items[i].id;
+    unsigned long offset = 0;
+    unsigned long ccount = 0;
+
+    for (j = i + 1; j < count; j++)
+    {
+      if (items[j].parent_id == pid)
+      {
+        if (ccount == 0)
+          offset = j;
+        ccount++;
+      }
+      else if (ccount > 0)
+      {
+        break;
+      }
+    }
+    items[i].children_offset_index = (ccount > 0) ? offset : 0;
+    items[i].children_count = ccount;
+  }
 }
 
 TMV_API TMV_INLINE void tmv_insertion_sort_stable_desc(tmv_item *items, unsigned long count)
@@ -321,35 +376,73 @@ TMV_API TMV_INLINE void tmv_squarify(
     tmv_rect area /* The area on which the squarified treemap should be aligned */
 )
 {
-  unsigned long i;
-  unsigned long j;
+  unsigned long i = 0;
+  unsigned long root_start;
+  unsigned long root_count;
 
   if (model->items_count == 0)
   {
     return;
   }
 
-  /* Lay out the current level */
-  tmv_squarify_current(model, area);
-
-  /* For each item, recurse into children if any */
-  for (i = model->rects_count - model->items_count, j = 0; j < model->items_count; ++j, ++i)
+  if (!model->items_sorted)
   {
-    tmv_item *item = &model->items[j];
+    tmv_items_depth_sort_offset(model->items, model->items_count);
+    model->items_sorted = 1;
+  }
+
+  /* Find top-level root items (parent_id == -1) */
+  while (i < model->items_count && model->items[i].parent_id >= TMV_FIRST_VALID_PARENT_ID)
+  {
+    ++i;
+  }
+
+  root_start = i;
+  root_count = 0;
+
+  while ((root_start + root_count) < model->items_count &&
+         model->items[root_start + root_count].parent_id < TMV_FIRST_VALID_PARENT_ID)
+  {
+    ++root_count;
+  }
+
+  /* Layout only root-level items at first */
+  if (root_count > 0)
+  {
+    tmv_model root_model = *model;
+    root_model.items = &model->items[root_start];
+    root_model.items_count = root_count;
+    root_model.rects_count = model->rects_count;
+    root_model.stats = model->stats;
+
+    tmv_squarify_current(&root_model, area);
+
+    model->rects_count = root_model.rects_count;
+    model->stats = root_model.stats;
+  }
+
+  /* Layout children for each node (already depth-sorted) */
+  for (i = 0; i < model->items_count; ++i)
+  {
+    tmv_item *item = &model->items[i];
 
     if (item->children_count > 0)
     {
+      /* Find parent rect (assumes 1-to-1 order match with items) */
       tmv_rect parent_rect = model->rects[i];
+
+      /* Setup child model view */
       tmv_model child_model;
-      child_model.items = item->children;
+      child_model.items = &model->items[item->children_offset_index];
       child_model.items_count = item->children_count;
       child_model.rects = model->rects;
       child_model.rects_count = model->rects_count;
       child_model.stats = model->stats;
 
-      tmv_squarify(&child_model, parent_rect);
+      /* Layout children directly in shared rect buffer */
+      tmv_squarify_current(&child_model, parent_rect);
 
-      /* Update parent's rect count with value from child */
+      /* Update parent model state */
       model->rects_count = child_model.rects_count;
       model->stats = child_model.stats;
     }
@@ -377,53 +470,6 @@ TMV_API TMV_INLINE void *tmv_binary_memcpy(void *dest, void *src, unsigned long 
   return dest;
 }
 
-/* Calculates the total size of the tmv_item struct data with its recursive level of children */
-TMV_API TMV_INLINE unsigned long tmv_binary_items_size(tmv_item *item, unsigned long items_user_data_size)
-{
-  unsigned long size = 0;
-  unsigned long i;
-
-  size += sizeof(unsigned long); /* id */
-  size += sizeof(double);        /* weight */
-  size += sizeof(unsigned long); /* children_count */
-  size += items_user_data_size;  /* user_data_size */
-
-  for (i = 0; i < item->children_count; ++i)
-  {
-    size += tmv_binary_items_size(&item->children[i], items_user_data_size);
-  }
-
-  return size;
-}
-
-/* Flattens the tmv_item struct data with its recursive level of children */
-TMV_API TMV_INLINE unsigned char *tmv_binary_encode_item(unsigned char *out_binary, tmv_item *item, unsigned long items_user_data_size)
-{
-  unsigned long i;
-
-  *(unsigned long *)out_binary = item->id;
-  out_binary += sizeof(unsigned long *);
-
-  *(double *)out_binary = item->weight;
-  out_binary += sizeof(double);
-
-  *(unsigned long *)out_binary = item->children_count;
-  out_binary += sizeof(unsigned long);
-
-  /* Copy user_data */
-  for (i = 0; i < items_user_data_size; ++i)
-  {
-    *out_binary++ = ((unsigned char *)item->user_data)[i];
-  }
-
-  for (i = 0; i < item->children_count; ++i)
-  {
-    out_binary = tmv_binary_encode_item(out_binary, &item->children[i], items_user_data_size);
-  }
-
-  return out_binary;
-}
-
 TMV_API TMV_INLINE void tmv_binary_encode(
     unsigned char *out_binary,         /* Output buffer for executable */
     unsigned long out_binary_capacity, /* Capacity of output buffer */
@@ -433,15 +479,20 @@ TMV_API TMV_INLINE void tmv_binary_encode(
 )
 {
   unsigned char *ptr = out_binary;
-  unsigned char *end = out_binary + out_binary_capacity;
 
-  unsigned long size_struct_area = sizeof(area);
-  unsigned long size_struct_stats = sizeof(model->stats);
-  unsigned long size_struct_items = tmv_total_items(model->items, model->items_count) * ((unsigned long)sizeof(*model->items) + model->items_user_data_size);
-  unsigned long size_struct_rects = model->rects_count * (unsigned long)sizeof(*model->rects);
+  unsigned long size_struct_area = sizeof(tmv_rect);
+  unsigned long size_struct_stats = sizeof(tmv_stats);
+  unsigned long size_struct_item = sizeof(tmv_item);
+  unsigned long size_struct_rect = sizeof(tmv_rect);
 
-  if (end - ptr < 5)
+  unsigned long size_items = model->items_count * (size_struct_item + model->items_user_data_size);
+  unsigned long size_rects = model->rects_count * size_struct_rect;
+
+  unsigned long size_total = TMV_BINARY_SIZE_HEADER + size_struct_area + size_struct_stats + size_items + size_rects;
+
+  if (out_binary_capacity < size_total)
   {
+    /* Binary buffer size cannot fit the tmv data */
     return;
   }
 
@@ -464,9 +515,9 @@ TMV_API TMV_INLINE void tmv_binary_encode(
   ptr += 4;
   tmv_binary_memcpy(ptr, &size_struct_stats, 4);
   ptr += 4;
-  tmv_binary_memcpy(ptr, &size_struct_items, 4);
+  tmv_binary_memcpy(ptr, &size_struct_item, 4);
   ptr += 4;
-  tmv_binary_memcpy(ptr, &size_struct_rects, 4);
+  tmv_binary_memcpy(ptr, &size_struct_rect, 4);
   ptr += 4;
   tmv_binary_memcpy(ptr, &model->items_count, 4);
   ptr += 4;
@@ -480,12 +531,12 @@ TMV_API TMV_INLINE void tmv_binary_encode(
   ptr += size_struct_area;
   tmv_binary_memcpy(ptr, &model->stats, size_struct_stats);
   ptr += size_struct_stats;
-  tmv_binary_memcpy(ptr, model->items, size_struct_items);
-  ptr += size_struct_items;
-  tmv_binary_memcpy(ptr, model->rects, size_struct_rects);
-  ptr += size_struct_rects;
+  tmv_binary_memcpy(ptr, model->items, size_items);
+  ptr += size_items;
+  tmv_binary_memcpy(ptr, model->rects, size_rects);
+  ptr += size_rects;
 
-  *out_binary_size = TMV_BINARY_SIZE_HEADER + size_struct_area + size_struct_stats + size_struct_items + size_struct_rects;
+  *out_binary_size = size_total;
 }
 
 TMV_API TMV_INLINE unsigned long tmv_binary_read_ul(unsigned char *ptr)
@@ -499,16 +550,21 @@ TMV_API TMV_INLINE unsigned long tmv_binary_read_ul(unsigned char *ptr)
 TMV_API TMV_INLINE void tmv_binary_decode(
     unsigned char *in_binary,     /* Output buffer for executable */
     unsigned long in_binary_size, /* Actual size of output binary buffer*/
-    tmv_model *model,
-    tmv_rect *area /* The area on which the squarified treemap should be aligned */
+    tmv_model *model,             /* The tmv data model */
+    tmv_rect *area                /* The area on which the squarified treemap should be aligned */
 )
 {
   unsigned char *binary_ptr;
 
   unsigned long size_struct_area;
   unsigned long size_struct_stats;
-  unsigned long size_struct_items;
-  unsigned long size_struct_rects;
+  unsigned long size_struct_item;
+  unsigned long size_struct_rect;
+
+  unsigned long size_items;
+  unsigned long size_rects;
+
+  unsigned long size_total;
 
   if (in_binary_size < TMV_BINARY_SIZE_HEADER)
   {
@@ -544,18 +600,12 @@ TMV_API TMV_INLINE void tmv_binary_decode(
   binary_ptr += 4;
 
   /* items size */
-  size_struct_items = tmv_binary_read_ul(binary_ptr);
+  size_struct_item = tmv_binary_read_ul(binary_ptr);
   binary_ptr += 4;
 
   /* rects size */
-  size_struct_rects = tmv_binary_read_ul(binary_ptr);
+  size_struct_rect = tmv_binary_read_ul(binary_ptr);
   binary_ptr += 4;
-
-  if (in_binary_size < TMV_BINARY_SIZE_HEADER + size_struct_area + size_struct_stats + size_struct_items + size_struct_rects)
-  {
-    /* no space for data */
-    return;
-  }
 
   model->items_count = tmv_binary_read_ul(binary_ptr);
   binary_ptr += 4;
@@ -566,6 +616,18 @@ TMV_API TMV_INLINE void tmv_binary_decode(
   model->rects_count = tmv_binary_read_ul(binary_ptr);
   binary_ptr += 4;
 
+  /* total items size */
+  size_items = model->items_count * (size_struct_item + model->items_user_data_size);
+  size_rects = model->rects_count * size_struct_rect;
+
+  size_total = TMV_BINARY_SIZE_HEADER + size_struct_area + size_struct_stats + size_items + size_rects;
+
+  if (in_binary_size < size_total)
+  {
+    /* no space for data */
+    return;
+  }
+
   *area = *(tmv_rect *)binary_ptr;
   binary_ptr += size_struct_area;
 
@@ -573,9 +635,10 @@ TMV_API TMV_INLINE void tmv_binary_decode(
   binary_ptr += size_struct_stats;
 
   model->items = (tmv_item *)binary_ptr;
-  binary_ptr += size_struct_items;
+  binary_ptr += size_items;
 
   model->rects = (tmv_rect *)binary_ptr;
+  binary_ptr += size_rects;
 }
 
 #endif /* TMV_H */

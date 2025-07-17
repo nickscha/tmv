@@ -41,7 +41,7 @@ static void tmv_write_to_svg(char *filename, tmv_model *model, tmv_rect *area)
     tmv_item *item = tmv_find_item_by_id(model->items, model->items_count, rect.id);
 
     vgg_rect r = {0};
-    r.header.id = rect.id;
+    r.header.id = (unsigned long)rect.id;
     r.header.type = VGG_TYPE_RECT;
     r.header.color_fill = vgg_color_map_linear(item->weight, model->stats.weigth_min, model->stats.weigth_max, color_start, color_end);
     r.x = rect.x;
@@ -70,12 +70,13 @@ static void tmv_to_svg_linear_weights(void)
 
   tmv_model model = {0};
 
-  unsigned int i;
+  long i;
 
   for (i = 0; i < TMV_LW_ITEMS; ++i)
   {
     tmv_item item = {0};
     item.id = i;
+    item.parent_id = -1;
     item.weight = TMV_LW_ITEMS - i;
     items[i] = item;
   }
@@ -102,41 +103,21 @@ static void tmv_to_svg_nested(void)
   /* Define a output buffer for output rects */
   tmv_rect rects[TMV_MAX_RECTS];
 
-  tmv_item child1 = {5, 2.5, 0, 0, 0};
-  tmv_item child2 = {6, 2.5, 0, 0, 0};
-  tmv_item child3 = {7, 2.5, 0, 0, 0};
-  tmv_item child4 = {8, 2.5, 0, 0, 0};
-  tmv_item children_linear[4];
-
-  tmv_item child5 = {9, 5.0, 0, 0, 0};
-  tmv_item child6 = {10, 2.5, 0, 0, 0};
-  tmv_item child7 = {11, 1.25, 0, 0, 0};
-  tmv_item child8 = {12, 1.25, 0, 0, 0};
-  tmv_item children_weighted[4];
-
   tmv_item items[] = {
-      {1, 20.0, 0, 0, 0},
-      {2, 10.0, 0, 0, 0},
-      {3, 5.0, 0, 0, 0},
-      {4, 5.0, 0, 0, 0}};
+      {1, -1, 20.0, 0, 0},
+      {2, -1, 10.0, 0, 0},
+      {3, -1, 5.0, 0, 0},
+      {4, -1, 5.0, 0, 0},
+      {5, 2, 2.5, 0, 0},
+      {6, 2, 2.5, 0, 0},
+      {7, 2, 2.5, 0, 0},
+      {8, 2, 2.5, 0, 0},
+      {9, 4, 5.0, 0, 0},
+      {10, 4, 2.5, 0, 0},
+      {11, 4, 1.25, 0, 0},
+      {12, 4, 1.25, 0, 0}};
 
   tmv_model model = {0};
-
-  children_linear[0] = child1;
-  children_linear[1] = child2;
-  children_linear[2] = child3;
-  children_linear[3] = child4;
-
-  children_weighted[0] = child5;
-  children_weighted[1] = child6;
-  children_weighted[2] = child7;
-  children_weighted[3] = child8;
-
-  items[1].children = children_linear;
-  items[1].children_count = 4;
-
-  items[3].children = children_weighted;
-  items[3].children_count = 4;
 
   model.items = items;
   model.items_count = TMV_ARRAY_SIZE(items);
@@ -164,41 +145,21 @@ static void tmv_tools_binary_encode(void)
   /* Define a output buffer for output rects */
   tmv_rect rects[TMV_MAX_RECTS];
 
-  tmv_item child1 = {5, 2.5, 0, 0, 0};
-  tmv_item child2 = {6, 2.5, 0, 0, 0};
-  tmv_item child3 = {7, 2.5, 0, 0, 0};
-  tmv_item child4 = {8, 2.5, 0, 0, 0};
-  tmv_item children_linear[4];
-
-  tmv_item child5 = {9, 5.0, 0, 0, 0};
-  tmv_item child6 = {10, 2.5, 0, 0, 0};
-  tmv_item child7 = {11, 1.25, 0, 0, 0};
-  tmv_item child8 = {12, 1.25, 0, 0, 0};
-  tmv_item children_weighted[4];
-
   tmv_item items[] = {
-      {1, 20.0, 0, 0, 0},
-      {2, 10.0, 0, 0, 0},
-      {3, 5.0, 0, 0, 0},
-      {4, 5.0, 0, 0, 0}};
+      {1, -1, 20.0, 0, 0},
+      {2, -1, 10.0, 0, 0},
+      {3, -1, 5.0, 0, 0},
+      {4, -1, 5.0, 0, 0},
+      {5, 2, 2.5, 0, 0},
+      {6, 2, 2.5, 0, 0},
+      {7, 2, 2.5, 0, 0},
+      {8, 2, 2.5, 0, 0},
+      {9, 4, 5.0, 0, 0},
+      {10, 4, 2.5, 0, 0},
+      {11, 4, 1.25, 0, 0},
+      {12, 4, 1.25, 0, 0}};
 
   tmv_model model = {0};
-
-  children_linear[0] = child1;
-  children_linear[1] = child2;
-  children_linear[2] = child3;
-  children_linear[3] = child4;
-
-  children_weighted[0] = child5;
-  children_weighted[1] = child6;
-  children_weighted[2] = child7;
-  children_weighted[3] = child8;
-
-  items[1].children = children_linear;
-  items[1].children_count = 4;
-
-  items[3].children = children_weighted;
-  items[3].children_count = 4;
 
   model.items = items;
   model.items_count = TMV_ARRAY_SIZE(items);
@@ -240,7 +201,7 @@ static void tmv_tools_binary_decode(void)
   /* Decode binary file to model */
   tmv_binary_decode(file_buffer, file_buffer_size, &model, &area);
 
-  assert(model.items_count == 4);
+  assert(model.items_count == 12);
   assert(model.rects_count == 12);
   assert(model.items[1].children_count == 4);
   assert(model.items[3].children_count == 4);
@@ -251,7 +212,6 @@ static void tmv_tools_binary_decode(void)
 void tmv_tools_tmv_to_svg(char *input_tmv_file, char *output_svg_file)
 {
   unsigned long i;
-  unsigned long j;
 
 #define TMV_TOOLS_FILE_BUFFER_CAPACITY 8192
   unsigned char file_buffer[TMV_TOOLS_FILE_BUFFER_CAPACITY];
@@ -289,21 +249,6 @@ void tmv_tools_tmv_to_svg(char *input_tmv_file, char *output_svg_file)
         item.id,
         item.weight,
         item.children_count);
-
-    if (item.children_count > 0)
-    {
-      for (j = 0; j < item.children_count; ++j)
-      {
-        tmv_item child = item.children[j];
-
-        printf(
-            "[child][%2lu] id: %5lu, weight: %10f, child_count: %5lu\n",
-            j,
-            child.id,
-            child.weight,
-            child.children_count);
-      }
-    }
   }
 
   tmv_write_to_svg(output_svg_file, &model, &area);
@@ -342,7 +287,6 @@ int main(int argc, char **argv)
   printf("[tmv_tools][cli] output: %s\n", flag_output);
   printf("\n");
 
-  /* TODO(nickscha): binary encoding does not write children */
   tmv_to_svg_linear_weights();
   tmv_to_svg_nested();
   tmv_tools_binary_encode();

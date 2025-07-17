@@ -15,7 +15,6 @@ LICENSE
 #include "test.h" /* Simple Testing framework */
 
 #define TVM_TEST_EPSILON 1e-6
-
 #define TMV_MAX_RECTS 1024
 
 void tmv_test_print_rects(tmv_rect *rects, unsigned long rect_count)
@@ -36,10 +35,10 @@ void tmv_test_simple_sort(void)
   tmv_rect rects[TMV_MAX_RECTS];
 
   tmv_item items[] = {
-      {1, 10.0, 0, 0, 0},
-      {2, 3.0, 0, 0, 0},
-      {3, 20.0, 0, 0, 0},
-      {4, 1.0, 0, 0, 0}};
+      {1, -1, 10.0, 0, 0},
+      {2, -1, 3.0, 0, 0},
+      {3, -1, 20.0, 0, 0},
+      {4, -1, 1.0, 0, 0}};
 
   /* The unified tmv model */
   tmv_model model = {0};
@@ -85,11 +84,11 @@ void tmv_test_simple_layout(void)
      id: 4, x: 50, y: 50, width: 50, height: 50
 
   */
-  tmv_item items[] = {
-      {1, 10.0, 0, 0, 0},
-      {2, 10.0, 0, 0, 0},
-      {3, 10.0, 0, 0, 0},
-      {4, 10.0, 0, 0, 0}};
+  tmv_item items[4] = {
+      {1, -1, 10.0, 0, 0},
+      {2, -1, 10.0, 0, 0},
+      {3, -1, 10.0, 0, 0},
+      {4, -1, 10.0, 0, 0}};
 
   /* The unified tmv model */
   tmv_model model = {0};
@@ -132,27 +131,20 @@ void tmv_test_simple_recursive_layout(void)
    id: 7, x: 25, y:  0, width: 25, height: 25  <- child3
    id: 8, x: 25, y: 25, width: 25, height: 25  <- child4
   */
-  tmv_item child1 = {5, 2.5, 0, 0, 0};
-  tmv_item child2 = {6, 2.5, 0, 0, 0};
-  tmv_item child3 = {7, 2.5, 0, 0, 0};
-  tmv_item child4 = {8, 2.5, 0, 0, 0};
-  tmv_item children[4];
+  tmv_item items[8] = {
+      {1, -1, 10.0, 0, 0},
+      {2, -1, 10.0, 0, 0},
+      {3, -1, 10.0, 0, 0},
+      {4, -1, 10.0, 0, 0},
+      {5, 1, 2.5, 0, 0},
+      {6, 1, 2.5, 0, 0},
+      {7, 1, 2.5, 0, 0},
+      {8, 1, 2.5, 0, 0},
 
-  tmv_item items[] = {
-      {1, 10.0, 0, 0, 4},
-      {2, 10.0, 0, 0, 0},
-      {3, 10.0, 0, 0, 0},
-      {4, 10.0, 0, 0, 0}};
+  };
 
   /* The unified tmv model */
   tmv_model model = {0};
-
-  children[0] = child1;
-  children[1] = child2;
-  children[2] = child3;
-  children[3] = child4;
-
-  items[0].children = children;
 
   model.rects = rects;
   model.items = items;
@@ -201,17 +193,19 @@ void tmv_test_simple_more_items(void)
 
   /* The unified tmv model */
   tmv_model model = {0};
-  model.rects = rects;
-  model.items = items;
-  model.items_count = TMV_ARRAY_SIZE(items);
 
-  for (i = 0; i < model.items_count; ++i)
+  for (i = 0; i < TMV_ARRAY_SIZE(items); ++i)
   {
     tmv_item item = {0};
-    item.id = i;
+    item.id = (long)i;
+    item.parent_id = -1;
     item.weight = 1.0;
     items[i] = item;
   }
+
+  model.rects = rects;
+  model.items = items;
+  model.items_count = TMV_ARRAY_SIZE(items);
 
   /* Build squarified recursive treemap view */
   tmv_squarify(&model, area);
@@ -228,162 +222,76 @@ void tmv_test_simple_more_items(void)
   }
 }
 
-void tmv_test_binary_encode(void)
+void tmv_test_flat_tree(void)
 {
-#define BINARY_BUFFER_CAPACITY 1024
-  unsigned char binary_buffer[BINARY_BUFFER_CAPACITY];
-  unsigned long binary_buffer_size = 0;
-
-  unsigned long size_struct_items;
-  unsigned long size_struct_rects;
-
-  unsigned char *binary_ptr;
-  tmv_rect *binary_area;
-  tmv_stats *binary_stats;
-  tmv_item *binary_items;
-  tmv_rect *binary_rects;
-
   unsigned long i;
 
-  /* The area on which the squarified treemap should be aligned */
-  tmv_rect area = {99, 0, 0, 100, 100};
-
   tmv_rect rects[TMV_MAX_RECTS];
-
-  tmv_item child1 = {5, 2.5, 0, 0, 0};
-  tmv_item child2 = {6, 2.5, 0, 0, 0};
-  tmv_item child3 = {7, 2.5, 0, 0, 0};
-  tmv_item child4 = {8, 2.5, 0, 0, 0};
-  tmv_item children[4];
-
-  tmv_item items[] = {
-      {1, 10.0, 0, 0, 4},
-      {2, 10.0, 0, 0, 0},
-      {3, 10.0, 0, 0, 0},
-      {4, 10.0, 0, 0, 0}};
-
+  tmv_rect area = {0, 0.0, 0.0, 100.0, 100.0};
   tmv_model model = {0};
 
-  children[0] = child1;
-  children[1] = child2;
-  children[2] = child3;
-  children[3] = child4;
+  /* Layout
+     [0] p1
+     [1] p2:
+       [4] c1
+       [5] c2
+     [2] p3
+     [3] p4
+       [6] c3
+         [8] cc1
+         [9] cc2
+       [7] c4
+  */
+  tmv_item item_p1 = {0, -1, 20.0, 0, 0};
+  tmv_item item_p2 = {1, -1, 10.0, 0, 0};
+  tmv_item item_p3 = {2, -1, 5.0, 0, 0};
+  tmv_item item_p4 = {3, -1, 5.0, 0, 0};
 
-  items[0].children = children;
+  tmv_item item_c1 = {4, 1, 5.0, 0, 0};
+  tmv_item item_c2 = {5, 1, 5.0, 0, 0};
 
-  model.rects = rects;
+  tmv_item item_c3 = {6, 3, 3.5, 0, 0};
+  tmv_item item_c4 = {7, 3, 1.5, 0, 0};
+
+  tmv_item item_cc1 = {8, 6, 1.75, 0, 0};
+  tmv_item item_cc2 = {9, 6, 1.75, 0, 0};
+
+  /* Unordered random sort */
+  tmv_item items[10];
+  items[0] = item_c1;
+  items[1] = item_p3;
+  items[2] = item_c2;
+  items[3] = item_cc1;
+  items[4] = item_p4;
+  items[5] = item_p1;
+  items[6] = item_p2;
+  items[7] = item_c3;
+  items[8] = item_cc2;
+  items[9] = item_c4;
+
+  assert(TMV_ARRAY_SIZE(items) == 10);
+
+  /* For the flat tree */
+  tmv_items_depth_sort_offset(items, TMV_ARRAY_SIZE(items));
+
+  for (i = 0; i < TMV_ARRAY_SIZE(items); ++i)
+  {
+    printf("[%2li] id: %3lu, parent_id: %3li, weight: %10f, children_offset_index: %5lu, children_count: %5lu\n",
+           i,
+           items[i].id,
+           items[i].parent_id,
+           items[i].weight,
+           items[i].children_offset_index,
+           items[i].children_count);
+  }
+
   model.items = items;
   model.items_count = TMV_ARRAY_SIZE(items);
+  model.rects = rects;
 
-  /* Build squarified recursive treemap view */
-  tmv_squarify(
-      &model,
-      area /* The area on which the squarified treemap should be aligned */
-  );
+  tmv_squarify(&model, area);
 
-  assert(model.rects_count == 8);
-  assert(model.rects_count == tmv_total_items(model.items, model.items_count));
-
-  /* ########################################################## */
-  /* # Encoding to binary                                       */
-  /* ########################################################## */
-  tmv_binary_encode(
-      binary_buffer,
-      BINARY_BUFFER_CAPACITY,
-      &binary_buffer_size,
-      &model,
-      area /* The area on which the squarified treemap should be aligned */
-  );
-
-  /* ########################################################## */
-  /* # Decoding and Verifying binary                            */
-  /* ########################################################## */
-  printf("[bin] binary_buffer_size: %lu\n", binary_buffer_size);
-
-  size_struct_items = tmv_total_items(items, TMV_ARRAY_SIZE(items)) * ((unsigned long)sizeof(*items) + model.items_user_data_size);
-  size_struct_rects = model.rects_count * (unsigned long)sizeof(*rects);
-
-  printf("[bin]  size_struct_items: %lu\n", size_struct_items);
-  printf("[bin]  size_struct_rects: %lu\n", size_struct_rects);
-
-  /* Test magic */
-  assert(binary_buffer[0] == 'T');
-  assert(binary_buffer[1] == 'M');
-  assert(binary_buffer[2] == 'V');
-  assert(binary_buffer[3] == '\0');
-
-  /* Test version */
-  assert(binary_buffer[4] == TMV_BINARY_VERSION);
-  assert(binary_buffer[5] == 0);
-  assert(binary_buffer[6] == 0);
-  assert(binary_buffer[7] == 0);
-
-  /* Test counts */
-  binary_ptr = binary_buffer + (TMV_BINARY_SIZE_MAGIC + TMV_BINARY_SIZE_VERSION);
-
-  assert(tmv_binary_read_ul(binary_ptr) == (unsigned long)sizeof(area));
-  binary_ptr += 4;
-  assert(tmv_binary_read_ul(binary_ptr) == (unsigned long)sizeof(model.stats));
-  binary_ptr += 4;
-  assert(tmv_binary_read_ul(binary_ptr) == size_struct_items);
-  binary_ptr += 4;
-  assert(tmv_binary_read_ul(binary_ptr) == size_struct_rects);
-  binary_ptr += 4;
-  assert(tmv_binary_read_ul(binary_ptr) == model.items_count);
-  binary_ptr += 4;
-  assert(tmv_binary_read_ul(binary_ptr) == model.items_user_data_size);
-  binary_ptr += 4;
-  assert(tmv_binary_read_ul(binary_ptr) == model.rects_count);
-  binary_ptr += 4;
-
-  /* check area */
-  binary_area = (tmv_rect *)binary_ptr;
-  assert(binary_area->id == 99);
-  assert_equalsd(binary_area->x, 0, TVM_TEST_EPSILON);
-  assert_equalsd(binary_area->y, 0, TVM_TEST_EPSILON);
-  assert_equalsd(binary_area->width, 100.0, TVM_TEST_EPSILON);
-  assert_equalsd(binary_area->height, 100.0, TVM_TEST_EPSILON);
-  binary_ptr += (unsigned long)sizeof(area);
-
-  /* check stats */
-  binary_stats = (tmv_stats *)binary_ptr;
-  assert(binary_stats->weigth_min == model.stats.weigth_min);
-  assert(binary_stats->weigth_max == model.stats.weigth_max);
-  assert(binary_stats->weigth_sum == model.stats.weigth_sum);
-  assert(binary_stats->count == model.stats.count);
-  binary_ptr += (unsigned long)sizeof(model.stats);
-
-  /* check items */
-  binary_items = (tmv_item *)binary_ptr;
-  for (i = 0; i < model.items_count; ++i)
-  {
-    assert(binary_items[i].id == model.items[i].id);
-    assert_equalsd(binary_items[i].weight, model.items[i].weight, TVM_TEST_EPSILON);
-    assert(binary_items[i].children_count == model.items[i].children_count);
-  }
-
-  assert(binary_items[0].children_count == 4);
-
-  /* Check items children s*/
-  for (i = 0; i < binary_items[0].children_count; ++i)
-  {
-    assert(binary_items[0].children[i].id == model.items[0].children[i].id);
-    assert_equalsd(binary_items[0].children[i].weight, model.items[0].children[i].weight, TVM_TEST_EPSILON);
-    assert(binary_items[0].children[i].children_count == model.items[0].children[i].children_count);
-  }
-
-  binary_ptr += size_struct_items;
-
-  /* check rects */
-  binary_rects = (tmv_rect *)binary_ptr;
-  for (i = 0; i < model.rects_count; ++i)
-  {
-    assert(binary_rects[i].id == model.rects[i].id);
-    assert_equalsd(binary_rects[i].x, model.rects[i].x, TVM_TEST_EPSILON);
-    assert_equalsd(binary_rects[i].y, model.rects[i].y, TVM_TEST_EPSILON);
-    assert_equalsd(binary_rects[i].width, model.rects[i].width, TVM_TEST_EPSILON);
-    assert_equalsd(binary_rects[i].height, model.rects[i].height, TVM_TEST_EPSILON);
-  }
+  tmv_test_print_rects(model.rects, model.rects_count);
 }
 
 void tmv_test_binary_decode(void)
@@ -404,26 +312,17 @@ void tmv_test_binary_decode(void)
 
   tmv_rect rects[TMV_MAX_RECTS];
 
-  tmv_item child1 = {5, 2.5, 0, 0, 0};
-  tmv_item child2 = {6, 2.5, 0, 0, 0};
-  tmv_item child3 = {7, 2.5, 0, 0, 0};
-  tmv_item child4 = {8, 2.5, 0, 0, 0};
-  tmv_item children[4];
-
-  tmv_item items[] = {
-      {1, 10.0, 0, 0, 4},
-      {2, 10.0, 0, 0, 0},
-      {3, 10.0, 0, 0, 0},
-      {4, 10.0, 0, 0, 0}};
+  tmv_item items[8] = {
+      {1, -1, 10.0, 0, 0},
+      {2, -1, 10.0, 0, 0},
+      {3, -1, 10.0, 0, 0},
+      {4, -1, 10.0, 0, 0},
+      {5, 1, 2.5, 0, 0},
+      {6, 1, 2.5, 0, 0},
+      {7, 1, 2.5, 0, 0},
+      {8, 1, 2.5, 0, 0}};
 
   tmv_model model = {0};
-
-  children[0] = child1;
-  children[1] = child2;
-  children[2] = child3;
-  children[3] = child4;
-
-  items[0].children = children;
 
   model.rects = rects;
   model.items = items;
@@ -436,7 +335,7 @@ void tmv_test_binary_decode(void)
   );
 
   assert(model.rects_count == 8);
-  assert(model.rects_count == tmv_total_items(model.items, model.items_count));
+  assert(model.rects_count == model.items_count);
 
   /* ########################################################## */
   /* # Encoding to binary                                       */
@@ -484,14 +383,6 @@ void tmv_test_binary_decode(void)
     assert_equalsd(binary_model.items[i].weight, model.items[i].weight, TVM_TEST_EPSILON);
   }
 
-  /* Check model childrens */
-  for (i = 0; i < binary_model.items[0].children_count; ++i)
-  {
-    assert(binary_model.items[0].children[i].id == model.items[0].children[i].id);
-    assert_equalsd(binary_model.items[0].children[i].weight, model.items[0].children[i].weight, TVM_TEST_EPSILON);
-    assert(binary_model.items[0].children[i].children_count == model.items[0].children[i].children_count);
-  }
-
   /* Check model rects */
   for (i = 0; i < model.rects_count; ++i)
   {
@@ -503,168 +394,14 @@ void tmv_test_binary_decode(void)
   }
 }
 
-typedef struct tmv_flat
-{
-
-  long id;        /* The id of this item that is also used for the computed tmv_rect */
-  long parent_id; /* The parent id of this item */
-  double weight;  /* The weight of the item */
-
-  unsigned long children_offset_index;
-  unsigned long children_count;
-
-} tmv_flat;
-
-void tmv_items_depth_sort_offset(tmv_flat *items, unsigned long count)
-{
-  unsigned long i, j;
-  int changed;
-  unsigned long iteration;
-
-  /* 1) Compute depths (iterative) */
-  for (iteration = 0; iteration < count; iteration++)
-  {
-    changed = 0;
-    for (i = 0; i < count; i++)
-    {
-      tmv_flat *item = &items[i];
-      if (item->parent_id == -1)
-      {
-        if (item->children_offset_index != 0)
-        {
-          item->children_offset_index = 0;
-          changed = 1;
-        }
-      }
-      else
-      {
-        for (j = 0; j < count; j++)
-        {
-          if (items[j].id == item->parent_id)
-          {
-            unsigned long new_depth = items[j].children_offset_index + 1;
-            if (item->children_offset_index != new_depth)
-            {
-              item->children_offset_index = new_depth;
-              changed = 1;
-            }
-            break;
-          }
-        }
-      }
-    }
-    if (!changed)
-      break;
-  }
-
-  /* 2) Stable insertion sort by depth (single pass) */
-  for (i = 1; i < count; i++)
-  {
-    tmv_flat key = items[i];
-    j = i;
-    while (j > 0 && items[j - 1].children_offset_index > key.children_offset_index)
-    {
-      items[j] = items[j - 1];
-      j--;
-    }
-    items[j] = key;
-  }
-
-  /* 3) Compute children offsets & counts in one pass */
-  for (i = 0; i < count; i++)
-  {
-    long pid = items[i].id;
-    unsigned long offset = 0;
-    unsigned long ccount = 0;
-
-    for (j = i + 1; j < count; j++)
-    {
-      if (items[j].parent_id == pid)
-      {
-        if (ccount == 0)
-          offset = j;
-        ccount++;
-      }
-      else if (ccount > 0)
-      {
-        break;
-      }
-    }
-    items[i].children_offset_index = (ccount > 0) ? offset : 0;
-    items[i].children_count = ccount;
-  }
-}
-
-void tmv_test_flat_tree(void)
-{
-  unsigned long i;
-
-  /* Layout
-     [0] p1
-     [1] p2:
-       [4] c1
-       [5] c2
-     [2] p3
-     [3] p4
-       [6] c3
-         [8] cc1
-         [9] cc2
-       [7] c4
-  */
-  tmv_flat item_p1 = {0, -1, 20.0, 0, 0};
-  tmv_flat item_p2 = {1, -1, 10.0, 0, 0};
-  tmv_flat item_p3 = {2, -1, 5.0, 0, 0};
-  tmv_flat item_p4 = {3, -1, 5.0, 0, 0};
-
-  tmv_flat item_c1 = {4, 1, 5.0, 0, 0};
-  tmv_flat item_c2 = {5, 1, 5.0, 0, 0};
-
-  tmv_flat item_c3 = {6, 3, 3.5, 0, 0};
-  tmv_flat item_c4 = {7, 3, 1.5, 0, 0};
-
-  tmv_flat item_cc1 = {8, 6, 1.75, 0, 0};
-  tmv_flat item_cc2 = {9, 6, 1.75, 0, 0};
-
-  /* Unordered random sort */
-  tmv_flat items[10];
-  items[0] = item_c1;
-  items[1] = item_p3;
-  items[2] = item_c2;
-  items[3] = item_cc1;
-  items[4] = item_p4;
-  items[5] = item_p1;
-  items[6] = item_p2;
-  items[7] = item_c3;
-  items[8] = item_cc2;
-  items[9] = item_c4;
-
-  assert(TMV_ARRAY_SIZE(items) == 10);
-
-  /* For the flat tree */
-  tmv_items_depth_sort_offset(items, TMV_ARRAY_SIZE(items));
-
-  for (i = 0; i < TMV_ARRAY_SIZE(items); ++i)
-  {
-    printf("[%2li] id: %3lu, parent_id: %3li, weight: %10f, children_offset_index: %5lu, children_count: %5lu\n",
-           i,
-           items[i].id,
-           items[i].parent_id,
-           items[i].weight,
-           items[i].children_offset_index,
-           items[i].children_count);
-  }
-}
-
 int main(void)
 {
   tmv_test_simple_sort();
   tmv_test_simple_layout();
   tmv_test_simple_recursive_layout();
   tmv_test_simple_more_items();
-  tmv_test_binary_encode();
-  tmv_test_binary_decode();
-
   tmv_test_flat_tree();
+  tmv_test_binary_decode();
 
   return 0;
 }
