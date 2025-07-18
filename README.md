@@ -43,27 +43,20 @@ int main() {
     id: 7, x: 25, y:  0, width: 25, height: 25  <- child3
     id: 8, x: 25, y: 25, width: 25, height: 25  <- child4
     */
-    tmv_item child1 = {5, 2.5, 0, 0, 0};
-    tmv_item child2 = {6, 2.5, 0, 0, 0};
-    tmv_item child3 = {7, 2.5, 0, 0, 0};
-    tmv_item child4 = {8, 2.5, 0, 0, 0};
-    tmv_item children[4];
-
     tmv_item items[] = {
-        {1, 10.0, 0, 0, 4},
-        {2, 10.0, 0, 0, 0},
-        {3, 10.0, 0, 0, 0},
-        {4, 10.0, 0, 0, 0}};
+        {1, -1, 10.0, 0, 0},
+        {2, -1, 10.0, 0, 0},
+        {3, -1, 10.0, 0, 0},
+        {4, -1, 10.0, 0, 0},
+        {5, 1, 2.5, 0, 0}, /* child has parent_id = 1 */
+        {6, 1, 2.5, 0, 0}, /* child has parent_id = 1 */
+        {7, 1, 2.5, 0, 0}, /* child has parent_id = 1 */
+        {8, 1, 2.5, 0, 0}, /* child has parent_id = 1 */
+
+    };
 
     /* The unified tmv model */
     tmv_model model = {0};
-
-    children[0] = child1;
-    children[1] = child2;
-    children[2] = child3;
-    children[3] = child4;
-
-    items[0].children = children;
 
     model.rects = rects;
     model.items = items;
