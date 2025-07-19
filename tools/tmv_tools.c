@@ -244,9 +244,10 @@ void tmv_tools_tmv_to_svg(char *input_tmv_file, char *output_svg_file)
     tmv_item item = model.items[i];
 
     printf(
-        " [item][%2lu] id: %5lu, weight: %10f, child_count: %5lu\n",
+        " [item][%2lu] id: %5lu, parent_id: %5li, weight: %10f, child_count: %5lu\n",
         i,
         item.id,
+        item.parent_id,
         item.weight,
         item.children_count);
   }
