@@ -417,8 +417,6 @@ TMV_API TMV_INLINE void tmv_squarify(
     tmv_model root_model = *model;
     root_model.items = &model->items[root_start];
     root_model.items_count = root_count;
-    root_model.rects_count = model->rects_count;
-    root_model.stats = model->stats;
 
     tmv_squarify_current(&root_model, area);
 
@@ -437,12 +435,9 @@ TMV_API TMV_INLINE void tmv_squarify(
       tmv_rect parent_rect = model->rects[i];
 
       /* Setup child model view */
-      tmv_model child_model;
+      tmv_model child_model = *model;
       child_model.items = &model->items[item->children_offset_index];
       child_model.items_count = item->children_count;
-      child_model.rects = model->rects;
-      child_model.rects_count = model->rects_count;
-      child_model.stats = model->stats;
 
       /* Layout children directly in shared rect buffer */
       tmv_squarify_current(&child_model, parent_rect);
