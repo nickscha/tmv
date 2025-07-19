@@ -50,6 +50,15 @@ void tmv_test_simple_sort(void)
 
   tmv_squarify(&model, area);
 
+  /* Ensure that depending on compiler settings there is no weird pointer mismatching
+   and the item fields (id, parent_id, weight) are the original ones after the squarification */
+  assert(model.items[1].id == 1);
+  assert(model.items[1].parent_id == -1);
+  assert_equalsd(model.items[1].weight, 10.0, TVM_TEST_EPSILON);
+  assert_equalsd(model.stats.weigth_min, 1.0, TVM_TEST_EPSILON);
+  assert_equalsd(model.stats.weigth_max, 20.0, TVM_TEST_EPSILON);
+  assert_equalsd(model.stats.weigth_sum, 34.0, TVM_TEST_EPSILON);
+
   assert(model.rects_count == 4);
 
   /* Items are sorted by weight afterwards */
