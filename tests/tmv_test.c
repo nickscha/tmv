@@ -235,6 +235,8 @@ void tmv_test_flat_tree(void)
 {
   unsigned long i;
 
+  tmv_item *search;
+
   tmv_rect rects[TMV_MAX_RECTS];
   tmv_rect area = {0, 0.0, 0.0, 100.0, 100.0};
   tmv_model model = {0};
@@ -299,6 +301,15 @@ void tmv_test_flat_tree(void)
   model.rects = rects;
 
   tmv_squarify(&model, area);
+
+  search = tmv_find_item_by_id(model.items, model.items_count, 0);
+  assert_equalsd(search->weight, 20.0, TVM_TEST_EPSILON);
+
+  search = tmv_find_item_by_id(model.items, model.items_count, 6);
+  assert_equalsd(search->weight, 3.5, TVM_TEST_EPSILON);
+
+  search = tmv_find_item_by_id(model.items, model.items_count, 8);
+  assert_equalsd(search->weight, 1.75, TVM_TEST_EPSILON);
 
   tmv_test_print_rects(model.rects, model.rects_count);
 }
