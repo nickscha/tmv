@@ -39,6 +39,7 @@ LICENSE
 #define TMV_PLATFORM_WIN32_INVALID_HANDLE ((void *)-1)
 #define TMV_PLATFORM_WIN32_GENERIC_WRITE (0x40000000L)
 #define TMV_PLATFORM_WIN32_CREATE_ALWAYS 2
+#define TMV_PLATFORM_WIN32_FILE_ATTRIBUTE_DIRECTORY 0x00000010
 #define TMV_PLATFORM_WIN32_FILE_ATTRIBUTE_NORMAL 0x00000080
 
 /* IO read */
@@ -46,6 +47,31 @@ LICENSE
 #define TMV_PLATFORM_WIN32_GENERIC_READ (0x80000000L)
 #define TMV_PLATFORM_WIN32_FILE_SHARE_READ 0x00000001
 #define TMV_PLATFORM_WIN32_OPEN_EXISTING 3
+
+/* IO Find file */
+#define TMV_PLATFORM_WIN32_MAX_PATH 260
+
+typedef struct TMV_PLATFORM_WIN32_FILETIME
+{
+    unsigned long dwLowDateTime;
+    unsigned long dwHighDateTime;
+
+} TMV_PLATFORM_WIN32_FILETIME;
+
+typedef struct TMV_PLATFORM_WIN32_FIND_DATAA
+{
+    unsigned long dwFileAttributes;
+    TMV_PLATFORM_WIN32_FILETIME ftCreationTime;
+    TMV_PLATFORM_WIN32_FILETIME ftLastAccessTime;
+    TMV_PLATFORM_WIN32_FILETIME ftLastWriteTime;
+    unsigned long nFileSizeHigh;
+    unsigned long nFileSizeLow;
+    unsigned long dwReserved0;
+    unsigned long dwReserved1;
+    char cFileName[TMV_PLATFORM_WIN32_MAX_PATH];
+    char cAlternateFileName[14];
+
+} TMV_PLATFORM_WIN32_FIND_DATAA;
 
 #ifndef _WINDOWS_
 #define TMV_PLATFORM_WIN32_API(r) __declspec(dllimport) r __stdcall
@@ -84,6 +110,16 @@ ReadFile(
     unsigned long nNumberOfBytesToRead,
     unsigned long *lpNumberOfBytesRead,
     void *lpOverlapped);
+
+/* IO Find file */
+TMV_PLATFORM_WIN32_API(void *)
+FindFirstFileA(const char *lpFileName, TMV_PLATFORM_WIN32_FIND_DATAA *lpFindFileData);
+
+TMV_PLATFORM_WIN32_API(int)
+FindNextFileA(void *hFindFile, TMV_PLATFORM_WIN32_FIND_DATAA *lpFindFileData);
+
+TMV_PLATFORM_WIN32_API(int)
+FindClose(void *hFindFile);
 
 #endif /* _WINDOWS_ */
 
