@@ -391,6 +391,7 @@ TMV_API TMV_INLINE void tmv_squarify(
     model->stats.weigth_max = -1.0;
     model->stats.weigth_sum = 0.0;
     model->stats.count = 0;
+    model->rects_count = 0;
 
     tmv_items_depth_sort_offset(model->items, model->items_count);
     model->items_sorted = 1;
