@@ -9,9 +9,18 @@
 </head>
 
 <body>
-
-    <div id="svg-container"></div>
     <button onclick="exportSVGasPNG()">Export as PNG</button>
+    <label for="svg-selector">Choose SVG file:</label>
+    <select id="svg-selector">
+        <option value="test.svg">test.svg</option>
+        <option value="tmv_files.svg">tmv_files.svg</option>
+        <option value="tmv_tools_binary.svg">tmv_tools_binary.svg</option>
+        <option value="tmv_to_svg_nested.svg">tmv_to_svg_nested.svg</option>
+        <option value="tmv_to_svg_linear_weights.svg">tmv_to_svg_linear_weights.svg</option>
+    </select>
+    <br />
+    <br />
+    <div id="svg-container"></div>
     <canvas id="canvas" style="display:none;"></canvas>
     <div id="info-box">Select/Hover over rects to see information</div>
 
@@ -42,22 +51,35 @@
     </style>
 
     <script>
-        fetch('tmv_files.svg')
-            .then(res => res.text())
-            .then(svgText => {
-                const parser = new DOMParser();
-                const svgDoc = parser.parseFromString(svgText, "image/svg+xml");
-                const svgElement = svgDoc.documentElement;
+        loadSVG("test.svg");
 
-                // Ensure it has correct namespace
-                svgElement.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        function loadSVG(fileName) {
+            fetch(fileName)
+                .then(res => res.text())
+                .then(svgText => {
+                    const parser = new DOMParser();
+                    const svgDoc = parser.parseFromString(svgText, "image/svg+xml");
+                    const svgElement = svgDoc.documentElement;
 
-                const container = document.getElementById("svg-container");
-                container.innerHTML = ""; // clear first
-                container.appendChild(svgElement);
+                    // Ensure it has correct namespace
+                    svgElement.setAttribute("xmlns", "http://www.w3.org/2000/svg");
 
-                requestAnimationFrame(initializeSVG);
-            });
+                    const container = document.getElementById("svg-container");
+                    container.innerHTML = ""; // clear first
+                    container.appendChild(svgElement);
+
+                    requestAnimationFrame(initializeSVG);
+                })
+                .catch(err => {
+                    console.error("Failed to load SVG:", err);
+                    document.getElementById("svg-container").innerHTML = "<p>Error loading SVG file.</p>";
+                });
+        }
+
+        document.getElementById("svg-selector").addEventListener("change", function () {
+            const selectedFile = this.value;
+            loadSVG(selectedFile);
+        });
 
         function exportSVGasPNG(scale = 2) {
             const svgElement = document.querySelector("svg");

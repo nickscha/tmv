@@ -10,254 +10,91 @@ LICENSE
   See end of file for detailed license information.
 
 */
-#include "../tmv.h"             /* The Squarified Treemap algorythm   */
-#include "../tmv_platform_io.h" /* Optional: Used for read/write file */
-#include "deps/clp.h"           /* Command Line Parser                */
-#include "deps/vgg.h"           /* SVG Graphics Generator             */
+#include "tmv_tools.h" /* Developer api for tmv tools */
+#include "deps/clp.h"  /* Command Line Parser         SS*/
 
-#include "../tests/test.h"
-
-static vgg_color color_start = {144, 224, 239}; /* Start (light teal): 144, 224, 239 */
-static vgg_color color_end = {255, 85, 0};      /*  End (dark orange): 255,  85,   0 */
-
-#define TMV_MAX_RECTS 2048
-#define VGG_MAX_BUFFER_SIZE 65536 /* SVG Buffer Size */
-
-static void tmv_write_to_svg(char *filename, tmv_model *model, tmv_rect *area)
+typedef struct tmv_tools_memory
 {
-  unsigned long i;
-  unsigned char vgg_buffer[VGG_MAX_BUFFER_SIZE];
+  unsigned char *vgg_buffer;
+  unsigned long vgg_buffer_size;
+  unsigned long vgg_buffer_capacity;
 
-  vgg_svg_writer w;
-  w.buffer = vgg_buffer;
-  w.capacity = VGG_MAX_BUFFER_SIZE;
-  w.length = 0;
+  unsigned char *io_buffer;
+  unsigned long io_buffer_size;
+  unsigned long io_buffer_capacity;
 
-  vgg_svg_start(&w, "tmvsvg", area->width, area->height);
+  tmv_item *items_buffer;
+  unsigned long items_buffer_size;
+  unsigned long items_buffer_capacity;
 
-  for (i = 0; i < model->rects_count; ++i)
-  {
-    tmv_rect rect = model->rects[i];
-    tmv_item *item = tmv_find_item_by_id(model->items, model->items_count, rect.id);
+  tmv_rect *rects_buffer;
+  unsigned long rects_buffer_size;
+  unsigned long rects_buffer_capacity;
 
-    vgg_rect r = {0};
-    r.header.id = (unsigned long)rect.id;
-    r.header.type = VGG_TYPE_RECT;
-    r.header.color_fill = vgg_color_map_linear(item->weight, model->stats.weigth_min, model->stats.weigth_max, color_start, color_end);
-    r.x = rect.x;
-    r.y = rect.y;
-    r.width = rect.width;
-    r.height = rect.height;
+} tmv_tools_memory;
 
-    vgg_svg_element_add(&w, (vgg_header *)&r);
-  }
-
-  vgg_svg_end(&w);
-  tmv_platform_write(filename, w.buffer, (unsigned long)w.length);
+void tmv_tools_memzero(tmv_tools_memory *memory)
+{
+  memory->vgg_buffer_size = 0;
+  memory->io_buffer_size = 0;
+  memory->items_buffer_size = 0;
+  memory->rects_buffer_size = 0;
 }
 
-#define TMV_LW_ITEMS 625 /* 25*25 equal weighted items on a 100x100 grid */
-static void tmv_to_svg_linear_weights(void)
+void tmv_tools_files_to_tmv(tmv_tools_memory *memory, char *output_tmv_file, char *path, tmv_rect area)
 {
-
-  /* The area on which the squarified treemap should be aligned */
-  tmv_rect area = {0, 0, 0, 400, 400};
-
-  /* Define a output buffer for output rects */
-  tmv_rect rects[TMV_MAX_RECTS];
-
-  tmv_item items[TMV_LW_ITEMS];
-
   tmv_model model = {0};
+  tmv_tools_scan_files(path, memory->items_buffer, &memory->items_buffer_size, memory->items_buffer_capacity, -1);
 
-  long i;
-
-  for (i = 0; i < TMV_LW_ITEMS; ++i)
-  {
-    tmv_item item = {0};
-    item.id = i;
-    item.parent_id = -1;
-    item.weight = TMV_LW_ITEMS - i;
-    items[i] = item;
-  }
-
-  model.items = items;
-  model.items_count = TMV_ARRAY_SIZE(items);
-  model.rects = rects;
+  model.items = memory->items_buffer;
+  model.items_count = memory->items_buffer_size;
+  model.rects = memory->rects_buffer;
+  model.rects_count = memory->rects_buffer_size;
 
   /* Build squarified recursive treemap view */
   tmv_squarify(
       &model,
-      area /* The area on which the squarified treemap should be aligned */
-  );
+      area);
 
-  /* Write to SVG file */
-  tmv_write_to_svg("tmv_to_svg_linear_weights.svg", &model, &area);
+  tmv_tools_print_model(&model, area);
+
+  /* (2) Decode tmv file to tmv_model and tmv_rect area */
+  tmv_binary_encode(memory->io_buffer, memory->io_buffer_capacity, &memory->io_buffer_size, &model, area);
+
+  tmv_platform_write(output_tmv_file, memory->io_buffer, memory->io_buffer_size);
 }
 
-static void tmv_to_svg_nested(void)
+void tmv_tools_tmv_to_svg(tmv_tools_memory *memory, char *input_tmv_file, char *output_svg_file)
 {
-  /* The area on which the squarified treemap should be aligned */
-  tmv_rect area = {0, 0, 0, 400, 400};
-
-  /* Define a output buffer for output rects */
-  tmv_rect rects[TMV_MAX_RECTS];
-
-  tmv_item items[] = {
-      {1, -1, 20.0, 0, 0},
-      {2, -1, 10.0, 0, 0},
-      {3, -1, 5.0, 0, 0},
-      {4, -1, 5.0, 0, 0},
-      {5, 2, 2.5, 0, 0},
-      {6, 2, 2.5, 0, 0},
-      {7, 2, 2.5, 0, 0},
-      {8, 2, 2.5, 0, 0},
-      {9, 4, 5.0, 0, 0},
-      {10, 4, 2.5, 0, 0},
-      {11, 4, 1.25, 0, 0},
-      {12, 4, 1.25, 0, 0}};
 
   tmv_model model = {0};
-
-  model.items = items;
-  model.items_count = TMV_ARRAY_SIZE(items);
-  model.rects = rects;
-
-  /* Build squarified recursive treemap view */
-  tmv_squarify(
-      &model,
-      area /* The area on which the squarified treemap should be aligned */
-  );
-
-  /* Write to SVG file */
-  tmv_write_to_svg("tmv_to_svg_nested.svg", &model, &area);
-}
-
-static void tmv_tools_binary_encode(void)
-{
-#define BINARY_BUFFER_CAPACITY 8192
-  unsigned char binary_buffer[BINARY_BUFFER_CAPACITY];
-  unsigned long binary_buffer_size = 0;
-
-  /* The area on which the squarified treemap should be aligned */
-  tmv_rect area = {0, 0, 0, 400, 400};
-
-  /* Define a output buffer for output rects */
-  tmv_rect rects[TMV_MAX_RECTS];
-
-  tmv_item items[] = {
-      {1, -1, 20.0, 0, 0},
-      {2, -1, 10.0, 0, 0},
-      {3, -1, 5.0, 0, 0},
-      {4, -1, 5.0, 0, 0},
-      {5, 2, 2.5, 0, 0},
-      {6, 2, 2.5, 0, 0},
-      {7, 2, 2.5, 0, 0},
-      {8, 2, 2.5, 0, 0},
-      {9, 4, 5.0, 0, 0},
-      {10, 4, 2.5, 0, 0},
-      {11, 4, 1.25, 0, 0},
-      {12, 4, 1.25, 0, 0}};
-
-  tmv_model model = {0};
-
-  model.items = items;
-  model.items_count = TMV_ARRAY_SIZE(items);
-  model.rects = rects;
-
-  /* Build squarified recursive treemap view */
-  tmv_squarify(
-      &model,
-      area /* The area on which the squarified treemap should be aligned */
-  );
-
-  /* ########################################################## */
-  /* # Encoding to binary                                       */
-  /* ########################################################## */
-  tmv_binary_encode(
-      binary_buffer,
-      BINARY_BUFFER_CAPACITY,
-      &binary_buffer_size,
-      &model,
-      area /* The area on which the squarified treemap should be aligned */
-  );
-
-  /* Write to TMV file */
-  assert(tmv_platform_write("tmv_tools_binary.tmv", binary_buffer, binary_buffer_size));
-}
-
-static void tmv_tools_binary_decode(void)
-{
-#define FILE_BUFFER_CAPACITY 8192
-  unsigned char file_buffer[FILE_BUFFER_CAPACITY];
-  unsigned long file_buffer_size = 0;
-
   tmv_rect area = {0};
-  tmv_model model = {0};
 
-  /* Read binary file */
-  assert(tmv_platform_read("tmv_tools_binary.tmv", file_buffer, FILE_BUFFER_CAPACITY, &file_buffer_size));
+  /* (1) Read the tmv file */
+  tmv_platform_read(input_tmv_file, memory->io_buffer, memory->io_buffer_capacity, &memory->io_buffer_size);
 
-  /* Decode binary file to model */
-  tmv_binary_decode(file_buffer, file_buffer_size, &model, &area);
+  /* (2) Decode tmv file to tmv_model and tmv_rect area */
+  tmv_binary_decode(memory->io_buffer, memory->io_buffer_size, &model, &area);
 
-  assert(model.items_count == 12);
-  assert(model.rects_count == 12);
-  assert(model.items[1].children_count == 4);
-  assert(model.items[3].children_count == 4);
+  /* (3) Write the tmv_model as SVG */
+  tmv_tools_write_to_svg(output_svg_file, memory->vgg_buffer, memory->vgg_buffer_capacity, &model, &area);
 }
 
 #define TMV_TOOLS_FLAGS 3
-
-void tmv_tools_tmv_to_svg(char *input_tmv_file, char *output_svg_file)
-{
-  unsigned long i;
-
-#define TMV_TOOLS_FILE_BUFFER_CAPACITY 8192
-  unsigned char file_buffer[TMV_TOOLS_FILE_BUFFER_CAPACITY];
-  unsigned long file_buffer_size = 0;
-
-  tmv_model model = {0};
-  tmv_rect area = {0};
-
-  tmv_platform_read(input_tmv_file, file_buffer, TMV_TOOLS_FILE_BUFFER_CAPACITY, &file_buffer_size);
-
-  tmv_binary_decode(file_buffer, file_buffer_size, &model, &area);
-
-  printf("[area]                    id: %10lu\n", area.id);
-  printf("[area]                     x: %10f\n", area.x);
-  printf("[area]                     y: %10f\n", area.y);
-  printf("[area]                 width: %10f\n", area.width);
-  printf("[area]                height: %10f\n", area.height);
-  printf("\n");
-  printf("[model]          items_count: %10lu\n", model.items_count);
-  printf("[model] items_user_data_size: %10lu\n", model.items_user_data_size);
-  printf("[model]          rects_count: %10lu\n", model.rects_count);
-  printf("[model]           weigth_min: %10f\n", model.stats.weigth_min);
-  printf("[model]           weigth_max: %10f\n", model.stats.weigth_max);
-  printf("[model]           weigth_sum: %10f\n", model.stats.weigth_sum);
-  printf("[model]                count: %10lu\n", model.stats.count);
-  printf("\n");
-
-  for (i = 0; i < model.items_count; ++i)
-  {
-    tmv_item item = model.items[i];
-
-    printf(
-        " [item][%2lu] id: %5lu, parent_id: %5li, weight: %10f, child_count: %5lu\n",
-        i,
-        item.id,
-        item.parent_id,
-        item.weight,
-        item.children_count);
-  }
-
-  tmv_write_to_svg(output_svg_file, &model, &area);
-}
+#include <stdlib.h>
 
 int main(int argc, char **argv)
 {
+  unsigned long memory_vgg_capacity = 1024 * 1024 * 64;          /* 64 MB for SVG Buffer */
+  unsigned long memory_io_capacity = 1024 * 1024 * 32;           /* 32 MB for files      */
+  unsigned long memory_items_capacity = sizeof(tmv_item) * 2048; /* tmv_items            */
+  unsigned long memory_rects_capacity = sizeof(tmv_rect) * 2048; /* tmv_rects            */
+  tmv_rect area = {0, 0.0, 0.0, 800.0, 300.0};
+
+  tmv_tools_memory memory = {0};
+
   clp_flag flags[TMV_TOOLS_FLAGS];
+
   char flag_command[32] = {0};
   char flag_input[32] = {0};
   char flag_output[32] = {0};
@@ -288,12 +125,29 @@ int main(int argc, char **argv)
   printf("[tmv_tools][cli] output: %s\n", flag_output);
   printf("\n");
 
-  tmv_to_svg_linear_weights();
-  tmv_to_svg_nested();
-  tmv_tools_binary_encode();
-  tmv_tools_binary_decode();
+  /* Initialize memory buffers */
+  memory.vgg_buffer = malloc(memory_vgg_capacity);
+  memory.vgg_buffer_capacity = memory_vgg_capacity;
+  memory.io_buffer = malloc(memory_io_capacity);
+  memory.io_buffer_capacity = memory_io_capacity;
+  memory.items_buffer = malloc(memory_items_capacity);
+  memory.items_buffer_capacity = memory_items_capacity;
+  memory.rects_buffer = malloc(memory_rects_capacity);
+  memory.rects_buffer_capacity = memory_rects_capacity;
 
-  tmv_tools_tmv_to_svg(flag_input, flag_output);
+  tmv_tools_tmv_to_svg(&memory, flag_input, flag_output);
+  tmv_tools_memzero(&memory);
+
+  tmv_tools_files_to_tmv(&memory, "test.tmv", ".", area);
+  tmv_tools_memzero(&memory);
+
+  tmv_tools_tmv_to_svg(&memory, "test.tmv", "test.svg");
+  tmv_tools_memzero(&memory);
+
+  free(memory.vgg_buffer);
+  free(memory.io_buffer);
+  free(memory.items_buffer);
+  free(memory.rects_buffer);
 
   return 0;
 }
