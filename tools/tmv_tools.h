@@ -124,6 +124,7 @@ TMV_TOOLS_API TMV_TOOLS_INLINE void tmv_tools_write_to_svg(char *filename, unsig
 
         vgg_rect r = {0};
         vgg_data_field data_fields[1];
+
         data_fields[0] = vgg_data_field_create_double("weight", item->weight, 3, d1_buffer);
 
         r.header.id = (unsigned long)rect.id;
@@ -253,9 +254,7 @@ TMV_TOOLS_API TMV_TOOLS_INLINE int tmv_tools_scan_files(
         else
         {
             item->weight = tmv_tools_ll_to_double(ffd.nFileSizeLow, ffd.nFileSizeHigh);
-            if(item->id == 578) {
-                printf("%s\n", ffd.cFileName);
-            }
+
             ++(*items_count);
         }
 

@@ -105,6 +105,19 @@ TMV_API TMV_INLINE tmv_item *tmv_find_item_by_id(tmv_item *items, unsigned long 
   return 0;
 }
 
+TMV_API TMV_INLINE tmv_rect *tmv_find_rect_by_id(tmv_rect *rects, unsigned long count, long id)
+{
+  unsigned long i;
+  for (i = 0; i < count; ++i)
+  {
+    if (rects[i].id == id)
+    {
+      return &rects[i];
+    }
+  }
+  return 0;
+}
+
 TMV_API TMV_INLINE void tmv_items_depth_sort_offset(tmv_item *items, unsigned long count)
 {
   unsigned long i, j;
@@ -112,7 +125,7 @@ TMV_API TMV_INLINE void tmv_items_depth_sort_offset(tmv_item *items, unsigned lo
   unsigned long iteration;
 
   /* 1) Compute depths (iterative) */
-  for (iteration = 0; iteration < count; iteration++)
+  for (iteration = 0; iteration < count; ++iteration)
   {
     changed = 0;
     for (i = 0; i < count; i++)
@@ -128,7 +141,7 @@ TMV_API TMV_INLINE void tmv_items_depth_sort_offset(tmv_item *items, unsigned lo
       }
       else
       {
-        for (j = 0; j < count; j++)
+        for (j = 0; j < count; ++j)
         {
           if (items[j].id == item->parent_id)
           {
@@ -148,7 +161,7 @@ TMV_API TMV_INLINE void tmv_items_depth_sort_offset(tmv_item *items, unsigned lo
   }
 
   /* 2) Stable insertion sort by depth (single pass) */
-  for (i = 1; i < count; i++)
+  for (i = 1; i < count; ++i)
   {
     tmv_item key = items[i];
     j = i;
@@ -161,13 +174,13 @@ TMV_API TMV_INLINE void tmv_items_depth_sort_offset(tmv_item *items, unsigned lo
   }
 
   /* 3) Compute children offsets & counts in one pass */
-  for (i = 0; i < count; i++)
+  for (i = 0; i < count; ++i)
   {
     long pid = items[i].id;
     unsigned long offset = 0;
     unsigned long ccount = 0;
 
-    for (j = i + 1; j < count; j++)
+    for (j = i + 1; j < count; ++j)
     {
       if (items[j].parent_id == pid)
       {
@@ -284,6 +297,9 @@ TMV_API TMV_INLINE void tmv_squarify_current(
   double area = render_area.width * render_area.height;
   double scale = (total_weight > 0.0) ? (area / total_weight) : 0.0;
 
+  int horizontal = (render_area.width >= render_area.height);
+  double side = horizontal ? render_area.height : render_area.width;
+
   tmv_insertion_sort_stable_desc(items, items_count);
 
   while (start < items_count)
@@ -292,9 +308,6 @@ TMV_API TMV_INLINE void tmv_squarify_current(
     double row_weight = 0.0;
     double worst = 1e9;
     unsigned long i;
-
-    int horizontal = (render_area.width >= render_area.height);
-    double side = horizontal ? render_area.height : render_area.width;
 
     double row_length;
     unsigned long row_count;
@@ -394,6 +407,7 @@ TMV_API TMV_INLINE void tmv_squarify(
     model->rects_count = 0;
 
     tmv_items_depth_sort_offset(model->items, model->items_count);
+
     model->items_sorted = 1;
   }
 
@@ -432,16 +446,23 @@ TMV_API TMV_INLINE void tmv_squarify(
 
     if (item->children_count > 0)
     {
-      /* Find parent rect (assumes 1-to-1 order match with items) */
-      tmv_rect parent_rect = model->rects[i];
+      tmv_model child_model;
+
+      /* Find parent rect */
+      tmv_rect *parent_rect = tmv_find_rect_by_id(model->rects, model->rects_count, item->id);
+
+      if (!parent_rect)
+      {
+        continue;
+      }
 
       /* Setup child model view */
-      tmv_model child_model = *model;
+      child_model = *model;
       child_model.items = &model->items[item->children_offset_index];
       child_model.items_count = item->children_count;
 
       /* Layout children directly in shared rect buffer */
-      tmv_squarify_current(&child_model, parent_rect);
+      tmv_squarify_current(&child_model, *parent_rect);
 
       /* Update parent model state */
       model->rects_count = child_model.rects_count;

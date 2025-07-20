@@ -149,6 +149,8 @@ int main(int argc, char **argv)
   free(memory.items_buffer);
   free(memory.rects_buffer);
 
+  printf("finished\n");
+
   return 0;
 }
 
