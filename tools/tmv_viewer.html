@@ -155,6 +155,12 @@
                 const data = rect.dataset;
                 let html = `<table><tr><th>Key</th><th>Value</th></tr>`;
                 html += `<tr><td><strong>id</strong></td><td>${rect.id}</td></tr>`;
+                html += `<tr><td><strong>rect.x</strong></td><td>${rect.getAttribute("x")}</td></tr>`;
+                html += `<tr><td><strong>rect.y</strong></td><td>${rect.getAttribute("y")}</td></tr>`;
+                html += `<tr><td><strong>rect.width</strong></td><td>${rect.getAttribute("width")}</td></tr>`;
+                html += `<tr><td><strong>rect.height</strong></td><td>${rect.getAttribute("height")}</td></tr>`;
+                html += `<tr><td><strong>rect.area</strong></td><td>${rect.getAttribute("height") * rect.getAttribute("width")}</td></tr>`;
+
                 for (let key in data) {
                     if (key !== "originalFill") {
                         html += `<tr><td><strong>${key}</strong></td><td>${data[key]}</td></tr>`;

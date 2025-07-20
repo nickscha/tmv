@@ -121,18 +121,10 @@ TMV_TOOLS_API TMV_TOOLS_INLINE void tmv_tools_write_to_svg(char *filename, unsig
         tmv_item *item = tmv_find_item_by_id(model->items, model->items_count, rect.id);
 
         char d1_buffer[32];
-        char d2_buffer[32];
-        char d3_buffer[32];
-        char d4_buffer[32];
-        char d5_buffer[32];
 
         vgg_rect r = {0};
-        vgg_data_field data_fields[5];
-        data_fields[0] = vgg_data_field_create_double("rect-x", rect.x, 6, d1_buffer);
-        data_fields[1] = vgg_data_field_create_double("rect-y", rect.y, 6, d2_buffer);
-        data_fields[2] = vgg_data_field_create_double("rect-width", rect.width, 6, d3_buffer);
-        data_fields[3] = vgg_data_field_create_double("rect-height", rect.height, 6, d4_buffer);
-        data_fields[4] = vgg_data_field_create_double("weight", item->weight, 3, d5_buffer);
+        vgg_data_field data_fields[1];
+        data_fields[0] = vgg_data_field_create_double("weight", item->weight, 3, d1_buffer);
 
         r.header.id = (unsigned long)rect.id;
         r.header.type = VGG_TYPE_RECT;
@@ -260,10 +252,10 @@ TMV_TOOLS_API TMV_TOOLS_INLINE int tmv_tools_scan_files(
         }
         else
         {
-            double size = tmv_tools_ll_to_double(ffd.nFileSizeLow, ffd.nFileSizeHigh);
-
-            item->weight = size;
-
+            item->weight = tmv_tools_ll_to_double(ffd.nFileSizeLow, ffd.nFileSizeHigh);
+            if(item->id == 578) {
+                printf("%s\n", ffd.cFileName);
+            }
             ++(*items_count);
         }
 

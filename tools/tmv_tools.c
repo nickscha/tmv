@@ -138,7 +138,7 @@ int main(int argc, char **argv)
   tmv_tools_tmv_to_svg(&memory, flag_input, flag_output);
   tmv_tools_memzero(&memory);
 
-  tmv_tools_files_to_tmv(&memory, "test.tmv", ".", area);
+  tmv_tools_files_to_tmv(&memory, "test.tmv", "..", area);
   tmv_tools_memzero(&memory);
 
   tmv_tools_tmv_to_svg(&memory, "test.tmv", "test.svg");
