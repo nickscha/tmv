@@ -150,9 +150,13 @@ TMV_TOOLS_API TMV_TOOLS_INLINE int tmv_tools_file_has_wanted_extension(const cha
     unsigned long i;
     const char *ext = filename;
     while (*ext && *ext != '.')
+    {
         ++ext;
+    }
     if (*ext == '\0')
+    {
         return 0;
+    }
 
     for (i = 0; i < count; ++i)
     {
@@ -164,7 +168,9 @@ TMV_TOOLS_API TMV_TOOLS_INLINE int tmv_tools_file_has_wanted_extension(const cha
             ++wanted;
         }
         if (*wanted == '\0' && *f == '\0')
+        {
             return 1;
+        }
     }
     return 0;
 }
@@ -287,9 +293,10 @@ TMV_TOOLS_API TMV_TOOLS_INLINE int tmv_tools_scan_files(
         }
         else
         {
-            if (wanted_exts_count == 0 || tmv_tools_file_has_wanted_extension(ffd.cFileName, wanted_exts, wanted_exts_count))
+            double weight = tmv_tools_ll_to_double(ffd.nFileSizeLow, ffd.nFileSizeHigh);
+            if (weight > 0.0 && (wanted_exts_count == 0 || tmv_tools_file_has_wanted_extension(ffd.cFileName, wanted_exts, wanted_exts_count)))
             {
-                item->weight = tmv_tools_ll_to_double(ffd.nFileSizeLow, ffd.nFileSizeHigh);
+                item->weight = weight;
                 ++(*items_count);
             }
         }
