@@ -43,8 +43,17 @@ void tmv_tools_memzero(tmv_tools_memory *memory)
 
 void tmv_tools_files_to_tmv(tmv_tools_memory *memory, char *output_tmv_file, char *path, tmv_rect area)
 {
+  char *exts[] = {".c", ".h"};
+
   tmv_model model = {0};
-  tmv_tools_scan_files(path, memory->items_buffer, &memory->items_buffer_size, memory->items_buffer_capacity, -1);
+
+  tmv_tools_scan_files(
+      path, memory->items_buffer,
+      &memory->items_buffer_size,
+      memory->items_buffer_capacity,
+      -1,
+      exts,
+      0);
 
   model.items = memory->items_buffer;
   model.items_count = memory->items_buffer_size;

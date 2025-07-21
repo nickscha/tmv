@@ -145,12 +145,38 @@ TMV_TOOLS_API TMV_TOOLS_INLINE void tmv_tools_write_to_svg(char *filename, unsig
     tmv_platform_write(filename, w.buffer, (unsigned long)w.length);
 }
 
+TMV_TOOLS_API TMV_TOOLS_INLINE int tmv_tools_file_has_wanted_extension(const char *filename, char **wanted_exts, unsigned long count)
+{
+    unsigned long i;
+    const char *ext = filename;
+    while (*ext && *ext != '.')
+        ++ext;
+    if (*ext == '\0')
+        return 0;
+
+    for (i = 0; i < count; ++i)
+    {
+        const char *wanted = wanted_exts[i];
+        const char *f = ext;
+        while (*f && *wanted && *f == *wanted)
+        {
+            ++f;
+            ++wanted;
+        }
+        if (*wanted == '\0' && *f == '\0')
+            return 1;
+    }
+    return 0;
+}
+
 TMV_TOOLS_API TMV_TOOLS_INLINE int tmv_tools_scan_files(
     const char *path,
     tmv_item *items_buffer,
     unsigned long *items_count,
     unsigned long items_capacity,
-    long parent_id)
+    long parent_id,
+    char **wanted_exts,
+    unsigned long wanted_exts_count)
 {
     char search_path[TMV_PLATFORM_WIN32_MAX_PATH];
     TMV_PLATFORM_WIN32_FIND_DATAA ffd;
@@ -237,7 +263,7 @@ TMV_TOOLS_API TMV_TOOLS_INLINE int tmv_tools_scan_files(
 
             before = *items_count;
 
-            tmv_tools_scan_files(full_path, items_buffer, items_count, items_capacity, (long)dir_index);
+            tmv_tools_scan_files(full_path, items_buffer, items_count, items_capacity, (long)dir_index, wanted_exts, wanted_exts_count);
 
             after = *items_count;
             total = 0.0;
@@ -261,10 +287,11 @@ TMV_TOOLS_API TMV_TOOLS_INLINE int tmv_tools_scan_files(
         }
         else
         {
-
-            item->weight = tmv_tools_ll_to_double(ffd.nFileSizeLow, ffd.nFileSizeHigh);
-
-            ++(*items_count);
+            if (wanted_exts_count == 0 || tmv_tools_file_has_wanted_extension(ffd.cFileName, wanted_exts, wanted_exts_count))
+            {
+                item->weight = tmv_tools_ll_to_double(ffd.nFileSizeLow, ffd.nFileSizeHigh);
+                ++(*items_count);
+            }
         }
 
     } while (FindNextFileA(hFind, &ffd) != 0);
