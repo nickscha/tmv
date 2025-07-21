@@ -124,7 +124,7 @@ TMV_API TMV_INLINE void tmv_items_depth_sort_offset(tmv_item *items, unsigned lo
   int changed;
   unsigned long iteration;
 
-  /* 1) Compute depths (iterative) */
+  /* (1) Compute depths (iterative) */
   for (iteration = 0; iteration < count; ++iteration)
   {
     changed = 0;
@@ -157,23 +157,50 @@ TMV_API TMV_INLINE void tmv_items_depth_sort_offset(tmv_item *items, unsigned lo
       }
     }
     if (!changed)
+    {
       break;
+    }
   }
 
-  /* 2) Stable insertion sort by depth (single pass) */
+  /* 2) Stable insertion sort by depth (asc), parent_id (asc), weight (desc) */
   for (i = 1; i < count; ++i)
   {
     tmv_item key = items[i];
     j = i;
-    while (j > 0 && items[j - 1].children_offset_index > key.children_offset_index)
+
+    while (j > 0)
     {
+      tmv_item *prev = &items[j - 1];
+
+      int depth_cmp = (int)prev->children_offset_index - (int)key.children_offset_index;
+      int parent_cmp = (prev->parent_id < key.parent_id) ? -1 : (prev->parent_id > key.parent_id) ? 1
+                                                                                                  : 0;
+      int weight_cmp = (prev->weight < key.weight) ? 1 : (prev->weight > key.weight) ? -1
+                                                                                     : 0;
+
+      int should_swap = 0;
+
+      if (depth_cmp > 0)
+        should_swap = 1;
+      else if (depth_cmp == 0)
+      {
+        if (parent_cmp > 0)
+          should_swap = 1;
+        else if (parent_cmp == 0 && weight_cmp > 0)
+          should_swap = 1;
+      }
+
+      if (!should_swap)
+        break;
+
       items[j] = items[j - 1];
       j--;
     }
+
     items[j] = key;
   }
 
-  /* 3) Compute children offsets & counts in one pass */
+  /* (3) Compute children offsets & counts in one pass */
   for (i = 0; i < count; ++i)
   {
     long pid = items[i].id;
@@ -185,7 +212,9 @@ TMV_API TMV_INLINE void tmv_items_depth_sort_offset(tmv_item *items, unsigned lo
       if (items[j].parent_id == pid)
       {
         if (ccount == 0)
+        {
           offset = j;
+        }
         ccount++;
       }
       else if (ccount > 0)
@@ -195,25 +224,6 @@ TMV_API TMV_INLINE void tmv_items_depth_sort_offset(tmv_item *items, unsigned lo
     }
     items[i].children_offset_index = (ccount > 0) ? offset : 0;
     items[i].children_count = ccount;
-  }
-}
-
-TMV_API TMV_INLINE void tmv_insertion_sort_stable_desc(tmv_item *items, unsigned long count)
-{
-  unsigned long i;
-  long j;
-  for (i = 1; i < count; ++i)
-  {
-    tmv_item key = items[i];
-    j = (long)(i - 1);
-
-    /* Move elements with weight < key.weight one position forward */
-    while (j >= 0 && items[j].weight < key.weight)
-    {
-      items[j + 1] = items[j];
-      j--;
-    }
-    items[j + 1] = key;
   }
 }
 
@@ -299,8 +309,6 @@ TMV_API TMV_INLINE void tmv_squarify_current(
 
   int horizontal = (render_area.width >= render_area.height);
   double side = horizontal ? render_area.height : render_area.width;
-
-  tmv_insertion_sort_stable_desc(items, items_count);
 
   while (start < items_count)
   {
