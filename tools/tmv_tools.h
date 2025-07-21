@@ -249,10 +249,19 @@ TMV_TOOLS_API TMV_TOOLS_INLINE int tmv_tools_scan_files(
                     total += items_buffer[j].weight;
                 }
             }
-            items_buffer[dir_index].weight = (double)total;
+            if (total == 0.0)
+            {
+                /* Rewind the item count to skip empty directory */
+                *items_count = dir_index;
+            }
+            else
+            {
+                items_buffer[dir_index].weight = total;
+            }
         }
         else
         {
+
             item->weight = tmv_tools_ll_to_double(ffd.nFileSizeLow, ffd.nFileSizeHigh);
 
             ++(*items_count);
