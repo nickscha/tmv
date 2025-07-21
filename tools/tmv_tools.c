@@ -94,10 +94,10 @@ void tmv_tools_tmv_to_svg(tmv_tools_memory *memory, char *input_tmv_file, char *
 
 int main(int argc, char **argv)
 {
-  unsigned long memory_vgg_capacity = 1024 * 1024 * 64;          /* 64 MB for SVG Buffer */
-  unsigned long memory_io_capacity = 1024 * 1024 * 32;           /* 32 MB for files      */
-  unsigned long memory_items_capacity = sizeof(tmv_item) * 2048; /* tmv_items            */
-  unsigned long memory_rects_capacity = sizeof(tmv_rect) * 2048; /* tmv_rects            */
+  unsigned long memory_vgg_capacity = 1024 * 1024 * 256;            /* 64 MB for SVG Buffer */
+  unsigned long memory_io_capacity = 1024 * 1024 * 32;             /* 32 MB for files      */
+  unsigned long memory_items_capacity = sizeof(tmv_item) * 200000; /* tmv_items            */
+  unsigned long memory_rects_capacity = sizeof(tmv_rect) * 200000; /* tmv_rects            */
   tmv_rect area = {0, 0.0, 0.0, 800.0, 300.0};
 
   tmv_tools_memory memory = {0};
