@@ -398,8 +398,8 @@ TMV_API TMV_INLINE void tmv_squarify(
 )
 {
   unsigned long i = 0;
-  unsigned long root_start;
-  unsigned long root_count;
+  unsigned long root_start = 0;
+  unsigned long root_count = 0;
 
   if (model->items_count == 0)
   {
@@ -419,15 +419,7 @@ TMV_API TMV_INLINE void tmv_squarify(
     model->items_sorted = 1;
   }
 
-  /* Find top-level root items (parent_id == -1) */
-  while (i < model->items_count && model->items[i].parent_id >= TMV_FIRST_VALID_PARENT_ID)
-  {
-    ++i;
-  }
-
-  root_start = i;
-  root_count = 0;
-
+  /* Count number of root items */
   while ((root_start + root_count) < model->items_count &&
          model->items[root_start + root_count].parent_id < TMV_FIRST_VALID_PARENT_ID)
   {
