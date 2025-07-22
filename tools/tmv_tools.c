@@ -164,8 +164,7 @@ int main(int argc, char **argv)
   {
     tmv_tools_tmv_to_svg(&memory, flag_input, flag_output);
   }
-
-  if (tmv_tools_string_compare(flag_command, "files_to_tmv") == 0)
+  else if (tmv_tools_string_compare(flag_command, "files_to_tmv") == 0)
   {
     tmv_tools_files_to_tmv(&memory, flag_input, flag_output, area);
   }
