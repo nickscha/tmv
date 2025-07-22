@@ -33,22 +33,15 @@ typedef struct tmv_tools_memory
 
 } tmv_tools_memory;
 
-void tmv_tools_memzero(tmv_tools_memory *memory)
-{
-  memory->vgg_buffer_size = 0;
-  memory->io_buffer_size = 0;
-  memory->items_buffer_size = 0;
-  memory->rects_buffer_size = 0;
-}
-
-void tmv_tools_files_to_tmv(tmv_tools_memory *memory, char *output_tmv_file, char *path, tmv_rect area)
+void tmv_tools_files_to_tmv(tmv_tools_memory *memory, char *input_path, char *output_tmv_file, tmv_rect area)
 {
   char *exts[] = {".c", ".h"};
 
   tmv_model model = {0};
 
   tmv_tools_scan_files(
-      path, memory->items_buffer,
+      input_path,
+      memory->items_buffer,
       &memory->items_buffer_size,
       memory->items_buffer_capacity,
       -1,
@@ -64,8 +57,6 @@ void tmv_tools_files_to_tmv(tmv_tools_memory *memory, char *output_tmv_file, cha
   tmv_squarify(
       &model,
       area);
-
-  tmv_tools_print_model(&model, area);
 
   /* (2) Decode tmv file to tmv_model and tmv_rect area */
   tmv_binary_encode(memory->io_buffer, memory->io_buffer_capacity, &memory->io_buffer_size, &model, area);
@@ -92,9 +83,35 @@ void tmv_tools_tmv_to_svg(tmv_tools_memory *memory, char *input_tmv_file, char *
 #define TMV_TOOLS_FLAGS 3
 #include <stdlib.h>
 
+TMV_TOOLS_API TMV_TOOLS_INLINE int tmv_tools_string_compare(const char *a, const char *b)
+{
+  char ca, cb;
+
+  while (*a && *b)
+  {
+    ca = *a;
+    cb = *b;
+
+    /* Convert A-Z to a-z */
+    if (ca >= 'A' && ca <= 'Z')
+      ca += 32;
+    if (cb >= 'A' && cb <= 'Z')
+      cb += 32;
+
+    if (ca != cb)
+      return (unsigned char)ca - (unsigned char)cb;
+
+    a++;
+    b++;
+  }
+
+  /* Check for unequal length strings */
+  return (unsigned char)*a - (unsigned char)*b;
+}
+
 int main(int argc, char **argv)
 {
-  unsigned long memory_vgg_capacity = 1024 * 1024 * 256;            /* 64 MB for SVG Buffer */
+  unsigned long memory_vgg_capacity = 1024 * 1024 * 256;           /* 64 MB for SVG Buffer */
   unsigned long memory_io_capacity = 1024 * 1024 * 32;             /* 32 MB for files      */
   unsigned long memory_items_capacity = sizeof(tmv_item) * 200000; /* tmv_items            */
   unsigned long memory_rects_capacity = sizeof(tmv_rect) * 200000; /* tmv_rects            */
@@ -129,10 +146,9 @@ int main(int argc, char **argv)
   /* Parse the command line arguments */
   clp_process(flags, CLP_ARRAY_SIZE(flags), argv, argc);
 
-  printf("[tmv_tools][cli]    cmd: %s\n", flag_command);
-  printf("[tmv_tools][cli]  input: %s\n", flag_input);
-  printf("[tmv_tools][cli] output: %s\n", flag_output);
-  printf("\n");
+  printf("[tmv_tools][cli]    cmd: '%s'\n", flag_command);
+  printf("[tmv_tools][cli]  input: '%s'\n", flag_input);
+  printf("[tmv_tools][cli] output: '%s'\n", flag_output);
 
   /* Initialize memory buffers */
   memory.vgg_buffer = malloc(memory_vgg_capacity);
@@ -144,21 +160,22 @@ int main(int argc, char **argv)
   memory.rects_buffer = malloc(memory_rects_capacity);
   memory.rects_buffer_capacity = memory_rects_capacity;
 
-  tmv_tools_tmv_to_svg(&memory, flag_input, flag_output);
-  tmv_tools_memzero(&memory);
+  if (tmv_tools_string_compare(flag_command, "tmv_to_svg") == 0)
+  {
+    tmv_tools_tmv_to_svg(&memory, flag_input, flag_output);
+  }
 
-  tmv_tools_files_to_tmv(&memory, "test.tmv", "..", area);
-  tmv_tools_memzero(&memory);
-
-  tmv_tools_tmv_to_svg(&memory, "test.tmv", "test.svg");
-  tmv_tools_memzero(&memory);
+  if (tmv_tools_string_compare(flag_command, "files_to_tmv") == 0)
+  {
+    tmv_tools_files_to_tmv(&memory, flag_input, flag_output, area);
+  }
 
   free(memory.vgg_buffer);
   free(memory.io_buffer);
   free(memory.items_buffer);
   free(memory.rects_buffer);
 
-  printf("finished\n");
+  printf("[tmv_tools][cli] status: ok\n\n");
 
   return 0;
 }
