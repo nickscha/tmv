@@ -122,8 +122,8 @@ int main(int argc, char **argv)
   clp_flag flags[TMV_TOOLS_FLAGS];
 
   char flag_command[32] = {0};
-  char flag_input[32] = {0};
-  char flag_output[32] = {0};
+  char flag_input[128] = {0};
+  char flag_output[128] = {0};
 
   flags[0].name = "cmd";
   flags[0].value = flag_command;
